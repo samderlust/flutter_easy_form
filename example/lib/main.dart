@@ -1,6 +1,5 @@
 import 'package:dynamic_form/dynamic_form.dart';
 import 'package:dynamic_form/form_control.dart';
-import 'package:dynamic_form/validators/required_validator.dart';
 import 'package:dynamic_form/validators/validator_base.dart';
 import 'package:flutter/material.dart';
 
@@ -108,21 +107,20 @@ class DynamicFormExample extends StatelessWidget {
             const Divider(),
             ElevatedButton(
               onPressed: () {
-                // model.control('name').setValue('Sam');
-                model.control('agreed').setValue(true);
+                model.set('agreed', true);
               },
               child: const Text('change name'),
             ),
             const SizedBox(height: 20),
-            DynamicFormConsumer(builder: (context, form) {
-              return ElevatedButton(
-                onPressed: () {
-                  form.validate();
-                  print(form);
-                },
-                child: const Text('Submit'),
-              );
-            })
+            Text("FORM IS VALID: ${model.isValid}"),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                model.validate();
+                print(model.values);
+              },
+              child: const Text('Submit'),
+            )
           ],
         ),
       ),

@@ -1,7 +1,10 @@
-import 'validators/validator_base.dart';
+import 'package:dynamic_form/dynamic_form.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
-class FormControl<T> with ChangeNotifier {
+import 'validators/validator_base.dart';
+
+class FormControl<T> {
   T? _value;
   bool dirty;
   bool touched;
@@ -26,8 +29,6 @@ class FormControl<T> with ChangeNotifier {
         break;
       }
     }
-
-    notifyListeners();
   }
 
   void reset() {
@@ -35,18 +36,15 @@ class FormControl<T> with ChangeNotifier {
     dirty = false;
     touched = false;
     error = null;
-    notifyListeners();
   }
 
   void markAsDirty() {
     dirty = true;
     touched = true;
-    notifyListeners();
   }
 
   void markAsTouched() {
     touched = true;
-    notifyListeners();
   }
 
   void setValue(T? v) {
@@ -54,7 +52,6 @@ class FormControl<T> with ChangeNotifier {
     dirty = true;
     touched = true;
     // validate();
-    notifyListeners();
   }
 
   @override
@@ -81,4 +78,51 @@ class FormControl<T> with ChangeNotifier {
         error.hashCode ^
         validators.hashCode;
   }
+}
+
+class DynamicFormControl<TFC> extends StatelessWidget {
+  const DynamicFormControl({
+    super.key,
+    required this.builder,
+    required this.formControlName,
+  });
+  final Widget Function(BuildContext context, FormControlInteract<TFC> control)
+      builder;
+  final String formControlName;
+
+  @override
+  Widget build(BuildContext context) {
+    final formGroup = DynamicFormProvider.of(context);
+    return builder(
+      context,
+      FormControlInteract<TFC>(formControlName, formGroup),
+    );
+  }
+}
+
+class FormControlInteract<T> {
+  final String key;
+  final FormGroup formGroup;
+
+  FormControlInteract(this.key, this.formGroup);
+
+  void setValue(T? value) => formGroup.set(key, value);
+
+  void reset() => formGroup.control(key).reset();
+
+  T? get value => formGroup.control(key).value;
+
+  void validate() => formGroup.control(key).validate();
+
+  void markAsDirty() => formGroup.control(key).markAsDirty();
+
+  void markAsTouched() => formGroup.control(key).markAsTouched();
+
+  bool get valid => formGroup.control(key).valid;
+
+  bool get dirty => formGroup.control(key).dirty;
+
+  bool get touched => formGroup.control(key).touched;
+
+  String? get error => formGroup.control(key).error;
 }

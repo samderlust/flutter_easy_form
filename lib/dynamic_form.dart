@@ -20,10 +20,23 @@ class FormGroup with ChangeNotifier {
   Map<String, dynamic> get values =>
       group.map((key, value) => MapEntry(key, value.value));
 
-  void validate() {
+  bool validate() {
     for (var ctrl in group.values) {
       ctrl.validate();
     }
+    notifyListeners();
+    return isValid;
+  }
+
+  void reset() {
+    for (var ctrl in group.values) {
+      ctrl.reset();
+    }
+    notifyListeners();
+  }
+
+  void set(String key, dynamic value) {
+    control(key).setValue(value);
     notifyListeners();
   }
 
@@ -39,31 +52,6 @@ class FormGroup with ChangeNotifier {
 
   @override
   int get hashCode => group.hashCode;
-}
-
-class FormControlProvider<TFC> extends InheritedNotifier<FormControl<TFC>> {
-  const FormControlProvider({
-    super.key,
-    required super.child,
-    required super.notifier,
-  });
-
-  static FormControl of(BuildContext context) {
-    final provider =
-        context.dependOnInheritedWidgetOfExactType<FormControlProvider>();
-
-    if (provider == null) {
-      throw Exception("No Provider found in context");
-    }
-
-    final notifier = provider.notifier;
-
-    if (notifier == null) {
-      throw Exception("No notifier found in Provider");
-    }
-
-    return notifier;
-  }
 }
 
 class DynamicFormProvider extends InheritedNotifier<FormGroup> {
@@ -93,28 +81,9 @@ class DynamicFormProvider extends InheritedNotifier<FormGroup> {
     return notifier;
   }
 
-  // FormNotifier get formData => notifier!;
-}
-
-class DynamicFormControl<TFC> extends StatelessWidget {
-  const DynamicFormControl({
-    super.key,
-    required this.builder,
-    required this.formControlName,
-  });
-  final Widget Function(BuildContext context, FormControl control) builder;
-  final String formControlName;
-
   @override
-  Widget build(BuildContext context) {
-    final formGroup = DynamicFormProvider.of(context);
-    return FormControlProvider<TFC>(
-      notifier: (formGroup.control(formControlName) as FormControl<TFC>),
-      child: builder(
-        context,
-        formGroup.control(formControlName),
-      ),
-    );
+  bool updateShouldNotify(DynamicFormProvider oldWidget) {
+    return notifier != oldWidget.notifier;
   }
 }
 
@@ -135,7 +104,9 @@ class DynamicFormWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return DynamicFormProvider(
       notifier: formGroup,
-      child: builder(context, formGroup),
+      child: Builder(builder: (acontext) {
+        return builder(context, DynamicFormProvider.of(acontext));
+      }),
     );
   }
 }
