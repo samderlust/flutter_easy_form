@@ -1,10 +1,5 @@
 typedef ValidatorFn<T> = String? Function(T? value);
-
-abstract class AbstractValidator<T> {
-  final String errorKey;
-  final ValidatorFn<T> validate;
-  AbstractValidator(this.errorKey, this.validate);
-}
+typedef ArrayValidatorFn<T> = String? Function(List<T>? value);
 
 String? requiredTrueValidator(bool? value) {
   if (value == true) {

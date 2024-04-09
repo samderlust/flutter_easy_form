@@ -1,15 +1,16 @@
-import 'package:dynamic_form/dynamic_form.dart';
+import 'package:easy_form/src/models/form_base.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
-import 'validators/validator_base.dart';
+import '../validators.dart';
 
-class FormControl<T> {
+/// Handle each field in a form
+class FormControl<T> with ChangeNotifier implements FormControlBase {
   T? _value;
   bool dirty;
   bool touched;
   String? error;
   List<ValidatorFn<T>> validators;
+  VoidCallback? _onReset;
   FormControl(
     this._value, {
     this.dirty = false,
@@ -17,9 +18,21 @@ class FormControl<T> {
     this.validators = const [],
   });
 
+  @override
   bool get valid => error == null;
   T? get value => _value;
 
+  @override
+  bool get isDirty => dirty;
+
+  @override
+  bool get isTouched => touched;
+
+  void onReset(VoidCallback fn) {
+    _onReset = fn;
+  }
+
+  @override
   void validate() {
     error = null;
     for (var validator in validators) {
@@ -29,22 +42,30 @@ class FormControl<T> {
         break;
       }
     }
+    notifyListeners();
   }
 
+  @override
   void reset() {
     _value = null;
     dirty = false;
     touched = false;
     error = null;
+    _onReset?.call();
+    notifyListeners();
   }
 
+  @override
   void markAsDirty() {
     dirty = true;
     touched = true;
+    notifyListeners();
   }
 
+  @override
   void markAsTouched() {
     touched = true;
+    notifyListeners();
   }
 
   void setValue(T? v) {
@@ -52,6 +73,7 @@ class FormControl<T> {
     dirty = true;
     touched = true;
     // validate();
+    notifyListeners();
   }
 
   @override
@@ -78,51 +100,4 @@ class FormControl<T> {
         error.hashCode ^
         validators.hashCode;
   }
-}
-
-class DynamicFormControl<TFC> extends StatelessWidget {
-  const DynamicFormControl({
-    super.key,
-    required this.builder,
-    required this.formControlName,
-  });
-  final Widget Function(BuildContext context, FormControlInteract<TFC> control)
-      builder;
-  final String formControlName;
-
-  @override
-  Widget build(BuildContext context) {
-    final formGroup = DynamicFormProvider.of(context);
-    return builder(
-      context,
-      FormControlInteract<TFC>(formControlName, formGroup),
-    );
-  }
-}
-
-class FormControlInteract<T> {
-  final String key;
-  final FormGroup formGroup;
-
-  FormControlInteract(this.key, this.formGroup);
-
-  void setValue(T? value) => formGroup.set(key, value);
-
-  void reset() => formGroup.control(key).reset();
-
-  T? get value => formGroup.control(key).value;
-
-  void validate() => formGroup.control(key).validate();
-
-  void markAsDirty() => formGroup.control(key).markAsDirty();
-
-  void markAsTouched() => formGroup.control(key).markAsTouched();
-
-  bool get valid => formGroup.control(key).valid;
-
-  bool get dirty => formGroup.control(key).dirty;
-
-  bool get touched => formGroup.control(key).touched;
-
-  String? get error => formGroup.control(key).error;
 }

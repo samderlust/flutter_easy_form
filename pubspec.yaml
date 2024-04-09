@@ -1,7 +1,7 @@
-name: dynamic_form
-description: "A new Flutter package project."
+name: easy_form
+description: "Easy to handle form in Flutter without any complexity. Easy to use and customize."
 version: 0.0.1
-homepage:
+homepage: https://github.com/samderlust/flutter_easy_form
 
 environment:
   sdk: ">=3.2.4 <4.0.0"

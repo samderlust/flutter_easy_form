@@ -11,8 +11,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  dynamic_form:
+  easy_form:
     path: ../
+  flutter_hooks: ^0.20.5
 
   cupertino_icons: ^1.0.2
 
