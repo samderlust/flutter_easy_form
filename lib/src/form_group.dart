@@ -1,24 +1,48 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-library dynamic_form;
-
-import 'package:dynamic_form/form_control.dart';
+import 'package:easy_form/src/models/form_base.dart';
+import 'package:easy_form/src/models/form_control.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
+import 'models/form_array_control.dart';
+
+/// Declare a form
+///
+/// `FormGroup` is a collection of `FormControl`
 class FormGroup with ChangeNotifier {
-  final Map<String, FormControl> group;
+  final Map<String, FormControlBase> group;
   FormGroup(this.group);
 
-  get isDirty => group.values.any((ctrl) => ctrl.dirty);
-  get isTouched => group.values.any((ctrl) => ctrl.touched);
+  get isDirty => group.values.any((ctrl) => ctrl.isDirty);
+  get isTouched => group.values.any((ctrl) => ctrl.isTouched);
   get isValid => group.values.every((ctrl) => ctrl.valid);
 
-  FormControl control(String ctrlName) => group[ctrlName] == null
-      ? throw ArgumentError('Control $ctrlName not found')
-      : group[ctrlName]!;
+  bool assertControl(String ctrlName) {
+    return (group[ctrlName] == null);
+  }
 
-  Map<String, dynamic> get values =>
-      group.map((key, value) => MapEntry(key, value.value));
+  FormControl<T> control<T>(String ctrlName) =>
+      group[ctrlName] == null && (group[ctrlName] is FormArrayControl)
+          ? throw ArgumentError('Control $ctrlName not found')
+          : group[ctrlName]! as FormControl<T>;
+
+  FormArrayControl<T> arrayControl<T>(String ctrlName) =>
+      group[ctrlName] == null
+          ? throw ArgumentError('ArrayControl $ctrlName not found')
+          : group[ctrlName]! as FormArrayControl<T>;
+
+  Map<String, dynamic> get values => group.map(
+        (key, value) => switch (value) {
+          var v when v is FormControl =>
+            MapEntry(key, (value as FormControl).value),
+          var v when v is FormArrayControl => MapEntry(
+              key,
+              (value as FormArrayControl)
+                  .controls!
+                  .map((e) => e.value)
+                  .toList()),
+          _ => throw 'value is not a FormControl or FormArrayControl',
+        },
+      );
 
   bool validate() {
     for (var ctrl in group.values) {
@@ -35,8 +59,12 @@ class FormGroup with ChangeNotifier {
     notifyListeners();
   }
 
-  void set(String key, dynamic value) {
-    control(key).setValue(value);
+  void setArrayItem(String key, int index, dynamic value) {
+    final ctrl = arrayControl(key).controls;
+    if (ctrl == null) {
+      return;
+    }
+    ctrl[index].setValue(value);
     notifyListeners();
   }
 
@@ -87,6 +115,7 @@ class DynamicFormProvider extends InheritedNotifier<FormGroup> {
   }
 }
 
+/// Render a form
 class DynamicFormWidget extends StatelessWidget {
   const DynamicFormWidget({
     super.key,
@@ -111,6 +140,7 @@ class DynamicFormWidget extends StatelessWidget {
   }
 }
 
+/// Consume a direct FormGroup
 class DynamicFormConsumer extends StatelessWidget {
   const DynamicFormConsumer({super.key, required this.builder});
 
