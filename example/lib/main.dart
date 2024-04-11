@@ -27,7 +27,12 @@ final form = FormGroup({
   'email': FormControl<String>(null, validators: [requiredValidator]),
   'gender': FormControl<String>(null, validators: [requiredValidator]),
   'agreed': FormControl<bool>(false, validators: [requiredTrueValidator]),
-  'tags': FormArrayControl<String>([], validators: [requiredValidator]),
+  'tags': FormArrayControl<String>(null, validators: [requiredValidator]),
+  'info': FormGroup({
+    'firstName':
+        FormControl<String>("fistname", validators: [requiredValidator]),
+    'lastName': FormControl<String>('last', validators: [requiredValidator]),
+  }),
 });
 
 class DynamicFormExample extends StatelessWidget {
@@ -38,10 +43,28 @@ class DynamicFormExample extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Dynamic Form Example')),
       body: SingleChildScrollView(
-        child: DynamicFormWidget(
+        child: EasyFormWidget(
           formGroup: form,
           builder: (context, model) => Column(
             children: [
+              EasyFormControl<String>(
+                formControlName: 'info.firstName',
+                builder: (context, control) => ControlledTextField(
+                  onTextChanged: (value) => control.setValue(value),
+                  onFormControlReset: (fn) => control.onReset(fn),
+                  onDirty: () => control.markAsDirty(),
+                  onTouched: () => control.markAsTouched(),
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    errorText: control.valid ? null : 'First name is required',
+                    helperText: control.dirty
+                        ? 'First name is dirty'
+                        : control.touched
+                            ? 'First name is touched'
+                            : null,
+                  ),
+                ),
+              ),
               EasyFormControl<String>(
                 formControlName: 'name',
                 builder: (context, control) => ControlledTextField(
@@ -223,5 +246,12 @@ class ControlledTextField extends HookWidget {
         decoration: decoration,
       );
     });
+  }
+}
+
+extension IndexedIterable<E> on Iterable<E> {
+  Iterable<T> mapIndexed<T>(T Function(E e, int i) f) {
+    var i = 0;
+    return map((e) => f(e, i++));
   }
 }

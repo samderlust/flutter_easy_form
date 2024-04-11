@@ -1,8 +1,18 @@
+import 'package:easy_form/src/providers/easy_form_array_provider.dart';
 import 'package:flutter/material.dart';
 
 import '../easy_form.dart';
-import 'form_group.dart';
+import 'providers/easy_form_provider.dart';
 
+/// A widget to consume a [FormArrayControl].
+///
+/// [EasyFormArrayControl] must be placed within a [EasyFormWidget].
+///
+/// This widget takes a builder which is responsible for building the widget
+/// tree for the [FormArrayControl]. The builder is called with the
+/// [BuildContext] and the [FormArrayControl] of the group.
+///
+/// The [formControlName] is the name of the [FormArrayControl] to consume.
 class EasyFormArrayControl<TFC> extends StatelessWidget {
   const EasyFormArrayControl({
     super.key,
@@ -15,7 +25,7 @@ class EasyFormArrayControl<TFC> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formGroup = DynamicFormProvider.of(context);
+    final formGroup = EasyFormProvider.of(context);
     final formArray = formGroup.arrayControl<TFC>(formControlName);
 
     return EasyFormArrayProvider<TFC>(
@@ -26,42 +36,5 @@ class EasyFormArrayControl<TFC> extends StatelessWidget {
         return builder(context, arrayCtrl);
       }),
     );
-  }
-}
-
-extension IndexedIterable<E> on Iterable<E> {
-  Iterable<T> mapIndexed<T>(T Function(E e, int i) f) {
-    var i = 0;
-    return map((e) => f(e, i++));
-  }
-}
-
-class EasyFormArrayProvider<T> extends InheritedNotifier<FormArrayControl<T>> {
-  const EasyFormArrayProvider({
-    super.key,
-    required super.child,
-    required super.notifier,
-  });
-
-  static FormArrayControl<T> of<T>(BuildContext context) {
-    final provider =
-        context.dependOnInheritedWidgetOfExactType<EasyFormArrayProvider<T>>();
-
-    if (provider == null) {
-      throw Exception("No Provider found in context");
-    }
-
-    final notifier = provider.notifier;
-
-    if (notifier == null) {
-      throw Exception("No notifier found in Provider");
-    }
-
-    return notifier;
-  }
-
-  @override
-  bool updateShouldNotify(EasyFormArrayProvider<T> oldWidget) {
-    return notifier != oldWidget.notifier;
   }
 }

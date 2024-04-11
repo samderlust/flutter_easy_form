@@ -1,11 +1,18 @@
 import 'package:easy_form/easy_form.dart';
 import 'package:flutter/material.dart';
 
-import 'form_group.dart';
+import 'providers/easy_form_provider.dart';
+import 'providers/form_control_provider.dart';
 
-/// DynamicFormControl
+/// A widget to consume a [FormControl]
 ///
-/// build widget for each `FormControl` in a `FormGroup`
+/// [EasyFormControl] must be placed within a [EasyFormWidget].
+///
+/// This widget takes a builder which is responsible for building the widget
+/// tree for the [FormControl]. The builder is called with the [BuildContext]
+/// and the [FormControl] of the group.
+///
+/// The [formControlName] is the name of the [FormControl] to consume.
 class EasyFormControl<TFC> extends StatelessWidget {
   const EasyFormControl({
     super.key,
@@ -17,46 +24,16 @@ class EasyFormControl<TFC> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formGroup = DynamicFormProvider.of(context);
+    final formGroup = EasyFormProvider.of(context);
 
-    return EasyFormProvider(
+    return EasyFormControlProvider(
       notifier: formGroup.control<TFC>(formControlName),
       child: Builder(builder: (childContext) {
         return builder(
           context,
-          EasyFormProvider.of(childContext),
+          EasyFormControlProvider.of(childContext),
         );
       }),
     );
-  }
-}
-
-class EasyFormProvider<T> extends InheritedNotifier<FormControl<T>> {
-  const EasyFormProvider({
-    super.key,
-    required super.child,
-    required super.notifier,
-  });
-
-  static FormControl<T> of<T>(BuildContext context) {
-    final provider =
-        context.dependOnInheritedWidgetOfExactType<EasyFormProvider<T>>();
-
-    if (provider == null) {
-      throw Exception("No Provider found in context");
-    }
-
-    final notifier = provider.notifier;
-
-    if (notifier == null) {
-      throw Exception("No notifier found in Provider");
-    }
-
-    return notifier;
-  }
-
-  @override
-  bool updateShouldNotify(EasyFormProvider<T> oldWidget) {
-    return notifier != oldWidget.notifier;
   }
 }
