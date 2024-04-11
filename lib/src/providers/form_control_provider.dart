@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../easy_form.dart';
 
-class EasyFormControlProvider<T> extends InheritedNotifier<FormControl<T>> {
-  const EasyFormControlProvider({
+class EzyFormControlProvider<T> extends InheritedNotifier<FormControl<T>> {
+  const EzyFormControlProvider({
     super.key,
     required super.child,
     required super.notifier,
   });
 
   static FormControl<T> of<T>(BuildContext context) {
-    final provider = context
-        .dependOnInheritedWidgetOfExactType<EasyFormControlProvider<T>>();
+    final provider =
+        context.dependOnInheritedWidgetOfExactType<EzyFormControlProvider<T>>();
 
     if (provider == null) {
       throw Exception("No Provider found in context");
@@ -27,7 +27,7 @@ class EasyFormControlProvider<T> extends InheritedNotifier<FormControl<T>> {
   }
 
   @override
-  bool updateShouldNotify(EasyFormControlProvider<T> oldWidget) {
+  bool updateShouldNotify(EzyFormControlProvider<T> oldWidget) {
     return notifier != oldWidget.notifier;
   }
 }

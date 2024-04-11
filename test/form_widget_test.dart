@@ -1,4 +1,4 @@
-import 'package:easy_form/easy_form.dart';
+import 'package:ezy_form/easy_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -29,8 +29,8 @@ void main() {
     await widgetTester.pumpAndSettle();
 
     expect(find.text('Email'), findsOneWidget);
-    expect(find.byType(EasyFormWidget), findsOneWidget);
-    expect(find.byType(EasyFormControl<String>), findsOneWidget);
+    expect(find.byType(EzyFormWidget), findsOneWidget);
+    expect(find.byType(EzyFormControl<String>), findsOneWidget);
   });
 
   testWidgets('enter text should update formcontrol', (widgetTester) async {
@@ -114,12 +114,12 @@ class _TestingFormAppState extends State<TestingFormApp> {
 
   @override
   Widget build(BuildContext context) {
-    return EasyFormWidget(
+    return EzyFormWidget(
       formGroup: form,
       builder: (context, form) {
         return Column(
           children: [
-            EasyFormControl<String>(
+            EzyFormControl<String>(
               formControlName: 'email',
               builder: (context, control) => TextField(
                 key: const ValueKey('email'),
@@ -130,7 +130,7 @@ class _TestingFormAppState extends State<TestingFormApp> {
                 ),
               ),
             ),
-            EasyFormConsumer(builder: (context, form) {
+            EzyFormConsumer(builder: (context, form) {
               return Row(
                 children: [
                   ElevatedButton(

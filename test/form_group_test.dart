@@ -1,4 +1,4 @@
-import 'package:easy_form/easy_form.dart';
+import 'package:ezy_form/easy_form.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

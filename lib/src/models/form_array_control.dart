@@ -1,4 +1,4 @@
-import 'package:easy_form/easy_form.dart';
+import 'package:ezy_form/easy_form.dart';
 import 'package:flutter/material.dart';
 
 import 'form_control_base.dart';

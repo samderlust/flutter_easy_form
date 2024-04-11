@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'models/form_group.dart';
-import 'providers/easy_form_provider.dart';
+import 'providers/ezy_form_provider.dart';
 
 /// A widget to consume a [FormGroup]
 ///
@@ -11,9 +11,9 @@ import 'providers/easy_form_provider.dart';
 ///
 /// The [formGroup] is the [FormGroup] to consume.
 ///
-/// The [EasyFormWidget] has to be placed at top lever of the form.
-class EasyFormWidget extends StatelessWidget {
-  const EasyFormWidget({
+/// The [EzyFormWidget] has to be placed at top lever of the form.
+class EzyFormWidget extends StatelessWidget {
+  const EzyFormWidget({
     super.key,
     required this.builder,
     required this.formGroup,
@@ -27,10 +27,10 @@ class EasyFormWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EasyFormProvider(
+    return EzyFormProvider(
       notifier: formGroup,
       child: Builder(builder: (acontext) {
-        return builder(context, EasyFormProvider.of(acontext));
+        return builder(context, EzyFormProvider.of(acontext));
       }),
     );
   }
@@ -38,14 +38,14 @@ class EasyFormWidget extends StatelessWidget {
 
 /// Consume a direct FormGroup
 ///
-/// have to be place within a [EasyFormWidget]
-class EasyFormConsumer extends StatelessWidget {
-  const EasyFormConsumer({super.key, required this.builder});
+/// have to be place within a [EzyFormWidget]
+class EzyFormConsumer extends StatelessWidget {
+  const EzyFormConsumer({super.key, required this.builder});
 
   final Widget Function(BuildContext context, FormGroup form) builder;
 
   @override
   Widget build(BuildContext context) {
-    return builder(context, EasyFormProvider.of(context));
+    return builder(context, EzyFormProvider.of(context));
   }
 }

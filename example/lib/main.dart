@@ -1,4 +1,4 @@
-import 'package:easy_form/easy_form.dart';
+import 'package:ezy_form/easy_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
@@ -43,11 +43,11 @@ class DynamicFormExample extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Dynamic Form Example')),
       body: SingleChildScrollView(
-        child: EasyFormWidget(
+        child: EzyFormWidget(
           formGroup: form,
           builder: (context, model) => Column(
             children: [
-              EasyFormControl<String>(
+              EzyFormControl<String>(
                 formControlName: 'info.firstName',
                 builder: (context, control) => ControlledTextField(
                   onTextChanged: (value) => control.setValue(value),
@@ -65,7 +65,7 @@ class DynamicFormExample extends StatelessWidget {
                   ),
                 ),
               ),
-              EasyFormControl<String>(
+              EzyFormControl<String>(
                 formControlName: 'name',
                 builder: (context, control) => ControlledTextField(
                   onTextChanged: (value) => control.setValue(value),
@@ -83,7 +83,7 @@ class DynamicFormExample extends StatelessWidget {
                   ),
                 ),
               ),
-              EasyFormControl<String>(
+              EzyFormControl<String>(
                 formControlName: 'email',
                 builder: (context, control) => TextField(
                   onChanged: (value) => control.setValue(value),
@@ -93,7 +93,7 @@ class DynamicFormExample extends StatelessWidget {
                   ),
                 ),
               ),
-              EasyFormControl<String>(
+              EzyFormControl<String>(
                 formControlName: 'gender',
                 builder: (context, control) => DropdownButtonFormField<String>(
                   value: control.value,
@@ -108,7 +108,7 @@ class DynamicFormExample extends StatelessWidget {
                   ],
                 ),
               ),
-              EasyFormArrayControl<String>(
+              EzyFormArrayControl<String>(
                 formControlName: 'tags',
                 builder: (context, arrayControl) => Column(
                   mainAxisSize: MainAxisSize.min,
@@ -147,7 +147,7 @@ class DynamicFormExample extends StatelessWidget {
                   ],
                 ),
               ),
-              EasyFormControl<bool>(
+              EzyFormControl<bool>(
                 formControlName: 'agreed',
                 builder: (context, control) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

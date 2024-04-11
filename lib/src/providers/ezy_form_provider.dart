@@ -1,16 +1,17 @@
-import 'package:easy_form/easy_form.dart';
 import 'package:flutter/material.dart';
 
-class EasyFormArrayProvider<T> extends InheritedNotifier<FormArrayControl<T>> {
-  const EasyFormArrayProvider({
+import '../../easy_form.dart';
+
+class EzyFormProvider extends InheritedNotifier<FormGroup> {
+  const EzyFormProvider({
     super.key,
     required super.child,
     required super.notifier,
   });
 
-  static FormArrayControl<T> of<T>(BuildContext context) {
+  static FormGroup of(BuildContext context) {
     final provider =
-        context.dependOnInheritedWidgetOfExactType<EasyFormArrayProvider<T>>();
+        context.dependOnInheritedWidgetOfExactType<EzyFormProvider>();
 
     if (provider == null) {
       throw Exception("No Provider found in context");
@@ -26,7 +27,7 @@ class EasyFormArrayProvider<T> extends InheritedNotifier<FormArrayControl<T>> {
   }
 
   @override
-  bool updateShouldNotify(EasyFormArrayProvider<T> oldWidget) {
+  bool updateShouldNotify(EzyFormProvider oldWidget) {
     return notifier != oldWidget.notifier;
   }
 }
