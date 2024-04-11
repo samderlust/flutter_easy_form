@@ -1,15 +1,31 @@
 import 'package:easy_form/easy_form.dart';
 import 'package:flutter/material.dart';
 
-import 'form_base.dart';
+import 'form_control_base.dart';
 
+/// A FormArrayControl is a collection of FormControl.
+///
+/// It provides methods to manipulate the list of FormControl,
+/// validate and reset the state.
 class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
+  /// Flag indicating if the control has been modified.
   bool dirty;
+
+  /// Flag indicating if the control has been touched.
   bool touched;
+
+  /// Error message if validation fails.
   String? error;
+
+  /// List of FormControls.
   List<FormControl<T>>? controls;
+
+  /// List of validators to apply to all FormControls in this FormArrayControl.
   List<ValidatorFn<T>> validators;
 
+  /// Construct a FormArrayControl.
+  ///
+  /// If `controls` is not null, apply the `validators` to each FormControl.
   FormArrayControl(
     this.controls, {
     this.dirty = false,
@@ -22,6 +38,10 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
       }
     }
   }
+
+  /// Add a FormControl to the list of FormControls.
+  ///
+  /// If `value` is provided, add it to the list of FormControls.
   void add([T? value]) {
     controls ??= [];
     var control = FormControl<T>(value, validators: validators);
@@ -29,6 +49,7 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
     notifyListeners();
   }
 
+  /// Remove a FormControl at `index` from the list of FormControls.
   void remove(int index) {
     controls?.removeAt(index);
     notifyListeners();
@@ -39,6 +60,13 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
 
   @override
   bool get isTouched => touched;
+
+  @override
+  bool get valid => error == null;
+
+  /// Get the values of all FormControls in the list.
+  List<T>? get values =>
+      controls?.where((e) => e.value != null).map((e) => e.value!).toList();
 
   @override
   void validate() {
@@ -76,7 +104,4 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
   void markAsTouched() {
     touched = true;
   }
-
-  @override
-  bool get valid => error == null;
 }
