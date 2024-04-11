@@ -85,8 +85,7 @@ class DynamicFormExample extends StatelessWidget {
               ),
               EasyFormControl<String>(
                 formControlName: 'email',
-                builder: (context, control) => TextFormField(
-                  initialValue: control.value,
+                builder: (context, control) => TextField(
                   onChanged: (value) => control.setValue(value),
                   decoration: InputDecoration(
                     labelText: 'Email',
@@ -167,14 +166,6 @@ class DynamicFormExample extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              const Divider(),
-              ElevatedButton(
-                onPressed: () {},
-                child: const Text('change name'),
-              ),
-              const SizedBox(height: 20),
-              Text("FORM IS VALID: ${model.isValid}"),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
