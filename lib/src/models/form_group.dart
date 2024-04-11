@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../easy_form.dart';
+import '../../ezy_form.dart';
 import 'form_control_base.dart';
 
 /// A [FormGroup] represents a group of [FormControl]s.

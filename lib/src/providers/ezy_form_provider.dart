@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../easy_form.dart';
+import '../../ezy_form.dart';
 
 class EzyFormProvider extends InheritedNotifier<FormGroup> {
   const EzyFormProvider({

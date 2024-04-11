@@ -1,7 +1,7 @@
 import 'package:ezy_form/src/providers/ezy_form_array_provider.dart';
 import 'package:flutter/material.dart';
 
-import '../easy_form.dart';
+import '../ezy_form.dart';
 import 'providers/ezy_form_provider.dart';
 
 /// A widget to consume a [FormArrayControl].
