@@ -56,10 +56,12 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
   }
 
   @override
-  bool get isDirty => dirty;
+  bool get isDirty =>
+      dirty || (controls?.any((c) => c.isDirty) ?? false);
 
   @override
-  bool get isTouched => touched;
+  bool get isTouched =>
+      touched || (controls?.any((c) => c.isTouched) ?? false);
 
   @override
   bool get valid => error == null;
@@ -70,14 +72,26 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
 
   @override
   void validate() {
-    if (controls == null) return;
     error = null;
-    for (var c in controls!) {
-      c.validate();
-      if (c.error != null) {
-        error = c.error;
+    if (controls == null || controls!.isEmpty) {
+      // No children yet — run the array's own validators against a null
+      // value so `requiredValidator` (and similar) fires on empty arrays.
+      for (var validator in validators) {
+        final e = validator(null);
+        if (e != null) {
+          error = e;
+          break;
+        }
+      }
+    } else {
+      for (var c in controls!) {
+        c.validate();
+        if (c.error != null) {
+          error = c.error;
+        }
       }
     }
+    notifyListeners();
   }
 
   @override
@@ -86,9 +100,10 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
     touched = false;
     error = null;
 
-    if (controls == null) return;
-    for (var c in controls!) {
-      c.reset();
+    if (controls != null) {
+      for (var c in controls!) {
+        c.reset();
+      }
     }
 
     notifyListeners();
@@ -98,10 +113,12 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
   void markAsDirty() {
     dirty = true;
     touched = true;
+    notifyListeners();
   }
 
   @override
   void markAsTouched() {
     touched = true;
+    notifyListeners();
   }
 }
