@@ -49,9 +49,15 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
     notifyListeners();
   }
 
-  /// Remove a FormControl at `index` from the list of FormControls.
+  /// Remove the [FormControl] at [index] from the list of FormControls.
+  ///
+  /// No-op when [controls] is null/empty or [index] is out of range.
   void remove(int index) {
-    controls?.removeAt(index);
+    final list = controls;
+    if (list == null || index < 0 || index >= list.length) {
+      return;
+    }
+    list.removeAt(index);
     notifyListeners();
   }
 

@@ -12,6 +12,13 @@
   `FormControl`s nested inside a `FormArrayControl` (previously the
   parent group reported `false` because only the array itself, not its
   children, was walked).
+* Fix: `FormArrayControl.remove(int index)` is now a no-op when the index
+  is out of range (or `controls` is null), instead of throwing
+  `RangeError`.
+* Fix: grammar in `FormGroup` lookup error — `"... not is invalid type"`
+  is now `"... has invalid type"`.
+* Internal: removed a dead `List<T>` branch in `FormGroup._flattenMapValues`
+  and a needless map copy in `_travelNested`.
 
 ## 0.0.1
 

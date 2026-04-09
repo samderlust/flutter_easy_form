@@ -108,6 +108,25 @@ void main() {
       expect(() => f.control('a.b'), throwsArgumentError);
       expect(() => f.control('a'), throwsArgumentError);
     });
+
+    test('invalid-type error message reads naturally', () {
+      final f = FormGroup({
+        'a': {
+          'b': FormControl<String>(null),
+        },
+      });
+
+      expect(
+        () => f.control('a.b'),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('has invalid type'),
+          ),
+        ),
+      );
+    });
   });
 
   group("nested validate", () {
