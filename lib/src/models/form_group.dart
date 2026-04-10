@@ -47,23 +47,21 @@ class FormGroup with ChangeNotifier {
   List<T> _flattenMapValues<T>(Map<String, dynamic> nestedMap) {
     List<T> flattenedValues = [];
     for (var value in nestedMap.values) {
-      if (value is Map<String, dynamic>) {
-        flattenedValues.addAll(_flattenMapValues(value));
-      } else if (value is List<T>) {
-        flattenedValues.addAll(value);
-      } else if (value is T) {
+      // Check `is T` first so that when T is FormGroup we collect the
+      // nested group itself (flatGroups) rather than descending into it.
+      if (value is T) {
         flattenedValues.add(value);
       } else if (value is FormGroup) {
         flattenedValues.addAll(_flattenMapValues(value.group));
-      } else {
-        continue;
+      } else if (value is Map<String, dynamic>) {
+        flattenedValues.addAll(_flattenMapValues(value));
       }
     }
     return flattenedValues;
   }
 
   T _travelNested<T>(Map<String, dynamic> map, List<String> kList) {
-    var curMap = {...map};
+    var curMap = map;
     for (var i = 0; i < kList.length; i++) {
       var val = curMap[kList[i]];
       if (val == null) {
@@ -73,7 +71,7 @@ class FormGroup with ChangeNotifier {
           val is! FormGroup &&
           val is! FormArrayControl &&
           val is! FormControl) {
-        throw ArgumentError('Control ${kList.join('.')} not is invalid type');
+        throw ArgumentError('Control ${kList.join('.')} has invalid type');
       }
 
       if (val is FormGroup) {

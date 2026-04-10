@@ -75,6 +75,24 @@ void main() {
     expect(state._formValues['email'], null);
   });
 
+  testWidgets('EzyFormControl without ancestor throws StateError',
+      (widgetTester) async {
+    await widgetTester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EzyFormControl<String>(
+            formControlName: 'email',
+            builder: (context, control) => const SizedBox(),
+          ),
+        ),
+      ),
+    );
+
+    final error = widgetTester.takeException();
+    expect(error, isA<StateError>());
+    expect((error as StateError).message, contains('EzyFormProvider'));
+  });
+
   testWidgets('validate from consumer should validate form',
       (widgetTester) async {
     await widgetTester.pumpWidget(app);

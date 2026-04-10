@@ -14,13 +14,16 @@ class EzyFormProvider extends InheritedNotifier<FormGroup> {
         context.dependOnInheritedWidgetOfExactType<EzyFormProvider>();
 
     if (provider == null) {
-      throw Exception("No Provider found in context");
+      throw StateError(
+        'No EzyFormProvider found in context. '
+        'Wrap your form fields in an EzyFormWidget.',
+      );
     }
 
     final notifier = provider.notifier;
 
     if (notifier == null) {
-      throw Exception("No notifier found in Provider");
+      throw StateError('EzyFormProvider was created without a FormGroup.');
     }
 
     return notifier;

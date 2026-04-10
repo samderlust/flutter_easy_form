@@ -14,13 +14,18 @@ class EzyFormControlProvider<T> extends InheritedNotifier<FormControl<T>> {
         context.dependOnInheritedWidgetOfExactType<EzyFormControlProvider<T>>();
 
     if (provider == null) {
-      throw Exception("No Provider found in context");
+      throw StateError(
+        'No EzyFormControlProvider<$T> found in context. '
+        'Use EzyFormControl<$T> inside an EzyFormWidget.',
+      );
     }
 
     final notifier = provider.notifier;
 
     if (notifier == null) {
-      throw Exception("No notifier found in Provider");
+      throw StateError(
+        'EzyFormControlProvider<$T> was created without a FormControl.',
+      );
     }
 
     return notifier;
