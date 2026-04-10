@@ -13,10 +13,21 @@ void main() {
       expect(ctrl.value, 'value');
     });
 
-    test('value should be reset', () {
+    test('reset restores the constructor-time initial value', () {
       final ctrl = FormControl<String>('value');
+      ctrl.setValue('edited');
       ctrl.reset();
-      expect(ctrl.value, null);
+      expect(ctrl.value, 'value');
+      expect(ctrl.dirty, false);
+      expect(ctrl.touched, false);
+      expect(ctrl.error, isNull);
+    });
+
+    test('reset on a control built from null restores null', () {
+      final ctrl = FormControl<String>(null);
+      ctrl.setValue('edited');
+      ctrl.reset();
+      expect(ctrl.value, isNull);
     });
 
     test('setValue should set value', () {
@@ -25,11 +36,22 @@ void main() {
       expect(ctrl.value, 'newValue');
     });
 
-    test('setValue should be reset', () {
+    test('clear wipes the value to null regardless of initial value', () {
       final ctrl = FormControl<String>('value');
-      ctrl.setValue('newValue');
-      ctrl.reset();
-      expect(ctrl.value, null);
+      ctrl.setValue('edited');
+      ctrl.clear();
+      expect(ctrl.value, isNull);
+      expect(ctrl.dirty, false);
+      expect(ctrl.touched, false);
+      expect(ctrl.error, isNull);
+    });
+
+    test('clear notifies listeners', () {
+      final ctrl = FormControl<String>('value');
+      var notified = 0;
+      ctrl.addListener(() => notified++);
+      ctrl.clear();
+      expect(notified, 1);
     });
 
     test('setValue should be dirty', () {

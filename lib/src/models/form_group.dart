@@ -117,10 +117,22 @@ class FormGroup with ChangeNotifier {
     return isValid;
   }
 
-  // Reset all form controls in this form group.
+  /// Resets every descendant control back to its initial value.
+  ///
+  /// See [clear] for the "wipe to empty" variant.
   void reset() {
     for (var ctrl in flatControls) {
       ctrl.reset();
+    }
+    notifyListeners();
+  }
+
+  /// Clears every descendant control to an empty state — values become
+  /// `null` and `dirty` / `touched` / `error` are cleared. The structure
+  /// of the group (and any nested arrays) is preserved.
+  void clear() {
+    for (var ctrl in flatControls) {
+      ctrl.clear();
     }
     notifyListeners();
   }

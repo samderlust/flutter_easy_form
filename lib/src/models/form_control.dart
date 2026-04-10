@@ -16,6 +16,9 @@ class FormControl<T> with ChangeNotifier implements FormControlBase {
   /// The current value of the form control.
   T? _value;
 
+  /// Snapshot of the value supplied to the constructor, used by [reset].
+  final T? _initialValue;
+
   /// Whether the form control has been modified by the user.
   bool dirty;
 
@@ -33,16 +36,18 @@ class FormControl<T> with ChangeNotifier implements FormControlBase {
 
   /// Constructs a [FormControl] with an initial value.
   ///
-  /// [value] The initial value of the form control.
+  /// [value] The initial value of the form control. This value is
+  /// captured and restored by [reset].
   /// [dirty] Whether the form control has been modified by the user.
   /// [touched] Whether the form control has been touched by the user.
   /// [validators] The list of validators to validate the value of the form control.
   FormControl(
-    this._value, {
+    T? value, {
     this.dirty = false,
     this.touched = false,
     this.validators = const [],
-  });
+  })  : _value = value,
+        _initialValue = value;
 
   /// The validation status of the form control.
   ///
@@ -82,9 +87,28 @@ class FormControl<T> with ChangeNotifier implements FormControlBase {
     notifyListeners();
   }
 
-  /// Resets the form control to its initial state.
+  /// Resets the form control back to the value supplied to the
+  /// constructor, and clears `dirty` / `touched` / `error`.
+  ///
+  /// Use [clear] instead if you want the value wiped to `null` regardless
+  /// of the initial value.
   @override
   void reset() {
+    _value = _initialValue;
+    dirty = false;
+    touched = false;
+    error = null;
+    _onReset?.call();
+    notifyListeners();
+  }
+
+  /// Clears the form control to an empty state — value becomes `null`
+  /// and `dirty` / `touched` / `error` are cleared.
+  ///
+  /// Unlike [reset] this ignores the value supplied to the constructor;
+  /// use it to wipe a form to a blank slate (e.g. a "Clear" button).
+  @override
+  void clear() {
     _value = null;
     dirty = false;
     touched = false;

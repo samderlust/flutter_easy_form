@@ -54,6 +54,69 @@ void main() {
     });
   });
 
+  group('FormArrayControl.clear', () {
+    test('nulls every child value but keeps the structure', () {
+      final arr = FormArrayControl<String>([
+        FormControl<String>('a'),
+        FormControl<String>('b'),
+        FormControl<String>('c'),
+      ]);
+
+      arr.clear();
+
+      expect(arr.controls!.length, 3);
+      expect(arr.values, [null, null, null]);
+      expect(arr.isDirty, false);
+      expect(arr.isTouched, false);
+      expect(arr.error, isNull);
+    });
+
+    test('is a no-op on a null controls list (still notifies)', () {
+      final arr = FormArrayControl<String>(null);
+      var notified = 0;
+      arr.addListener(() => notified++);
+
+      arr.clear();
+      expect(arr.controls, isNull);
+      expect(notified, 1);
+    });
+  });
+
+  group('FormArrayControl.removeAll', () {
+    test('drops every child', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b');
+
+      arr.removeAll();
+
+      expect(arr.controls, isEmpty);
+      expect(arr.values, isEmpty);
+    });
+
+    test('clears state and notifies', () {
+      final arr = FormArrayControl<String>([FormControl<String>('a')]);
+      arr.controls![0].setValue('edited');
+      var notified = 0;
+      arr.addListener(() => notified++);
+
+      arr.removeAll();
+
+      expect(arr.controls, isEmpty);
+      expect(arr.isDirty, false);
+      expect(notified, 1);
+    });
+
+    test('add() works after removeAll()', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..removeAll()
+        ..add('fresh');
+
+      expect(arr.values, ['fresh']);
+    });
+  });
+
   group('FormArrayControl.reset', () {
     test('drops items added after construction when built from null', () {
       final arr = FormArrayControl<String>(null)

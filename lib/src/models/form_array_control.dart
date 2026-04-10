@@ -143,6 +143,9 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
   /// original [FormControl]s are rebuilt from the initial value snapshot.
   /// If the array was constructed with `null` controls, [controls] is set
   /// back to `null`.
+  ///
+  /// Use [clear] to keep the current children but null out their values,
+  /// or [removeAll] to drop every child outright.
   @override
   void reset() {
     dirty = false;
@@ -157,6 +160,38 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
           .toList();
     }
 
+    notifyListeners();
+  }
+
+  /// Clears every child's value to `null` while keeping the current
+  /// number of children, and clears `dirty` / `touched` / `error` on the
+  /// array itself.
+  @override
+  void clear() {
+    dirty = false;
+    touched = false;
+    error = null;
+
+    if (controls != null) {
+      for (var c in controls!) {
+        c.clear();
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// Removes every child from the array, leaving an empty list.
+  ///
+  /// Use this when you want to start over from scratch (e.g. a
+  /// "Remove all tags" button). [reset] restores the original shape;
+  /// [clear] keeps the current shape but nulls values; [removeAll] drops
+  /// the children entirely.
+  void removeAll() {
+    dirty = false;
+    touched = false;
+    error = null;
+    controls = [];
     notifyListeners();
   }
 

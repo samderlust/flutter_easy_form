@@ -1,14 +1,20 @@
 /// [FormControlBase] is an abstract interface class that represents a
 /// form control.
 ///
-/// A form control can be validated and reset, and can be marked as dirty
-/// or touched.
+/// A form control can be validated, reset, or cleared, and can be marked
+/// as dirty or touched.
 abstract interface class FormControlBase<T> {
   /// Validates the form control.
   void validate();
 
-  /// Resets the form control to its initial state.
+  /// Resets the form control back to its **initial** state — the value
+  /// (or shape, for arrays) it was constructed with.
   void reset();
+
+  /// Clears the form control to an **empty** state — values become `null`
+  /// and `dirty` / `touched` / `error` are cleared. For arrays, the
+  /// existing children are kept and each child's value is nulled.
+  void clear();
 
   /// Marks the form control as dirty.
   void markAsDirty();

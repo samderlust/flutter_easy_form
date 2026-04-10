@@ -132,4 +132,53 @@ void main() {
   group("nested validate", () {
     test("nested group should be in FormGroup", () {});
   });
+
+  group('reset vs clear semantics', () {
+    test('reset restores initial values across nested groups and arrays', () {
+      final f = FormGroup({
+        'name': FormControl<String>('initial-name'),
+        'tags': FormArrayControl<String>([
+          FormControl<String>('tag-a'),
+          FormControl<String>('tag-b'),
+        ]),
+        'profile': FormGroup({
+          'age': FormControl<int>(30),
+        }),
+      });
+
+      f.control<String>('name').setValue('edited');
+      f.arrayControl<String>('tags').add('tag-c');
+      f.control<int>('profile.age').setValue(99);
+
+      f.reset();
+
+      expect(f.control<String>('name').value, 'initial-name');
+      expect(f.arrayControl<String>('tags').controls!.length, 2);
+      expect(f.arrayControl<String>('tags').values, ['tag-a', 'tag-b']);
+      expect(f.control<int>('profile.age').value, 30);
+      expect(f.isDirty, false);
+    });
+
+    test('clear nulls every leaf but keeps the structure', () {
+      final f = FormGroup({
+        'name': FormControl<String>('initial-name'),
+        'tags': FormArrayControl<String>([
+          FormControl<String>('tag-a'),
+          FormControl<String>('tag-b'),
+        ]),
+        'profile': FormGroup({
+          'age': FormControl<int>(30),
+        }),
+      });
+
+      f.clear();
+
+      expect(f.control<String>('name').value, isNull);
+      expect(f.arrayControl<String>('tags').controls!.length, 2);
+      expect(f.arrayControl<String>('tags').values, [null, null]);
+      expect(f.control<int>('profile.age').value, isNull);
+      expect(f.isDirty, false);
+      expect(f.isTouched, false);
+    });
+  });
 }

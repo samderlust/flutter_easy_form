@@ -1,3 +1,42 @@
+## 1.0.0 (Unreleased)
+
+### Breaking changes
+
+* **`FormControl.reset()` now restores the constructor-time initial value**
+  instead of clearing to `null`. This brings it in line with the
+  ecosystem (Angular reactive forms, web `<form>.reset()`, react-hook-form)
+  and with the `FormArrayControl.reset()` snapshot behavior shipped in
+  0.0.2. Migration: if your code relied on `reset()` wiping a control to
+  `null`, call the new `clear()` instead.
+* **`FormControlBase` interface gained a `clear()` method.** Any custom
+  implementer of this interface must add it.
+
+### New features
+
+* **`FormControl.clear()`** — wipes the value to `null` and clears
+  `dirty` / `touched` / `error`, regardless of the constructor's initial
+  value. Use this for "Clear" buttons that should empty all fields.
+* **`FormGroup.clear()`** — recursively clears every descendant control,
+  preserving the group's structure (and any nested array shapes).
+* **`FormArrayControl.clear()`** — keeps the current children but nulls
+  every value, so an array with three slots stays at three empty slots.
+  Composes naturally with `FormGroup.clear()`.
+* **`FormArrayControl.removeAll()`** — drops every child outright,
+  leaving `controls = []`. Use this when you want to start over from
+  scratch (e.g. a "Remove all tags" button or rebuilding a dynamic form).
+
+### Reset / clear / removeAll cheat sheet
+
+| | `reset()` | `clear()` | `removeAll()` |
+|---|---|---|---|
+| `FormControl<T>` | restore initial value | value → `null` | — |
+| `FormGroup` | recurse `reset()` | recurse `clear()` | — |
+| `FormArrayControl<T>` | restore initial children | keep children, null values | drop every child |
+
+All three operations also clear `dirty` / `touched` / `error` and notify.
+
+---
+
 ## 0.0.2
 
 * Fix: `FormArrayControl.validate()` now calls `notifyListeners()` so `EzyFormArrayControl` widgets rebuild to show errors after validation.

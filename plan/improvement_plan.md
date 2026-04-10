@@ -8,24 +8,37 @@ listed at the end.
 
 ## High impact — fixes real friction in the current example/README
 
-### 1. `FormControl.reset()` should restore the initial value
-`reset()` currently clears `_value` to `null`, even when the control was
-constructed with `FormControl<String>('hello')`. Any pre-filled form (e.g.
-the example's "First Name") loses its initial state on reset.
+### 1. Split `reset()` (restore initial) and `clear()` (wipe to empty) — DONE in 1.0.0
+Previously `FormControl.reset()` cleared `_value` to `null`, even when the
+control was constructed with `FormControl<String>('hello')`. Any pre-filled
+form (e.g. the example's "First Name") lost its initial state on reset, and
+there was no way to ask for "back to initial". This also disagreed with
+the rest of the form-library ecosystem (Angular reactive forms, web's
+`<form>.reset()`, react-hook-form), where `reset()` means *restore initial*.
 
-**Fix:** apply the same snapshot pattern used in `FormArrayControl.reset()`
-in 0.0.2 — store the initial value in the constructor and restore it.
+**Resolution (shipped in 1.0.0):** introduce a clean three-verb API across
+all three model types and add `clear()` to `FormControlBase`.
 
-```dart
-final T? _initialValue;
-FormControl(this._value, {...}) : _initialValue = _value;
+| | `reset()` | `clear()` | `removeAll()` |
+|---|---|---|---|
+| `FormControl<T>` | restore constructor's initial value | set value to `null` | — |
+| `FormGroup` | call `reset()` on every descendant | call `clear()` on every descendant | — |
+| `FormArrayControl<T>` | restore initial children + values from snapshot | keep children, null every value | drop every child (`controls = []`) |
 
-@override
-void reset() {
-  _value = _initialValue;
-  ...
-}
-```
+All three operations clear `dirty` / `touched` / `error` and notify.
+
+**Why three verbs and not a `reset(clearAll: true)` flag:**
+- Boolean params are a code smell — `reset(clearAll: false)` reads ambiguously.
+- `reset()` already has an established meaning across form libraries; changing it to "go to initial unless you pass a flag" is surprising.
+- Three verbs compose cleanly with `FormGroup.clear()` walking the tree —
+  every leaf goes to `null` regardless of whether it lives inside an array
+  or a nested group.
+
+**Why both `clear()` and `removeAll()` on arrays:** "clear" is ambiguous
+on a list. `clear()` keeps the structure (3 empty slots stay 3 empty
+slots, which composes with `FormGroup.clear()`); `removeAll()` is the
+explicit "drop every item" verb for use cases like a "Remove all tags"
+button or rebuilding a dynamic form from scratch.
 
 ### 2. `setValue` always marks dirty/touched and always notifies
 Loading values from a server response is currently impossible without
@@ -122,8 +135,9 @@ No `addControl(name, control)` / `removeControl(name)`. Required for
 stepwise / wizard / dynamic forms.
 
 ### 11. `FormArrayControl` is missing standard list ops
+(`clear()` and `removeAll()` shipped in 1.0.0 — see #1.)
+
 - `insert(index, value)`
-- `clear()`
 - `move(from, to)` for drag-reorder UX
 - An `add` overload that accepts a fully-built `FormControl<T>` so users
   can attach custom validators to a single item.
@@ -193,8 +207,9 @@ map's value type would catch this at compile time.
 
 ## Suggested ship order
 
-1. **`FormControl.reset()` restores the initial value** — bug parity with
-   `FormArrayControl`, ~5 lines. (#1)
+1. ~~**`FormControl.reset()` restores the initial value** — bug parity with
+   `FormArrayControl`.~~ **Shipped in 1.0.0 along with `clear()` /
+   `removeAll()` across all three model types.** (#1)
 2. **`setValue` short-circuits on no-op + optional `markDirty: false`,
    plus `FormGroup.patchValue`** — unlocks "load from API". (#2, #3)
 3. **First-party `EzyTextField` / `EzyCheckbox` / `EzyDropdown`** — biggest
