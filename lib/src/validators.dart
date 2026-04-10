@@ -1,5 +1,10 @@
 typedef ValidatorFn<T> = String? Function(T? value);
-typedef ArrayValidatorFn<T> = String? Function(List<T>? value);
+
+/// Signature for validators applied to a [FormArrayControl] as a whole.
+///
+/// The validator receives the array's aggregated values (which may include
+/// `null` entries for empty slots) or `null` if the array has no children.
+typedef ArrayValidatorFn<T> = String? Function(List<T?>? value);
 
 String? requiredTrueValidator(bool? value) {
   if (value == true) {

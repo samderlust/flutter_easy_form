@@ -72,5 +72,19 @@ void main() {
       expect(ctrl.touched, true);
       expect(ctrl.dirty, false);
     });
+
+    test('equality is identity-based', () {
+      final a = FormControl<String>('same');
+      final b = FormControl<String>('same');
+
+      // Distinct instances with equal state should NOT compare equal —
+      // otherwise putting two controls in a Set would collapse them.
+      expect(a == b, false);
+      expect(identical(a, a), true);
+      expect(a == a, true);
+
+      final set = <FormControl<String>>{a, b};
+      expect(set.length, 2);
+    });
   });
 }

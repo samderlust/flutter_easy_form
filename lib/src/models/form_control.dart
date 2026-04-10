@@ -122,24 +122,4 @@ class FormControl<T> with ChangeNotifier implements FormControlBase {
   String toString() {
     return 'FormControl(value: $_value, dirty: $dirty, touched: $touched, error: $error)';
   }
-
-  @override
-  bool operator ==(covariant FormControl<T> other) {
-    if (identical(this, other)) return true;
-
-    return other._value == _value &&
-        other.dirty == dirty &&
-        other.touched == touched &&
-        other.error == error &&
-        listEquals(other.validators, validators);
-  }
-
-  @override
-  int get hashCode {
-    return _value.hashCode ^
-        dirty.hashCode ^
-        touched.hashCode ^
-        error.hashCode ^
-        validators.hashCode;
-  }
 }

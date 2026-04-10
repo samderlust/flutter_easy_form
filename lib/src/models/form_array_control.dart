@@ -20,18 +20,37 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
   /// List of FormControls.
   List<FormControl<T>>? controls;
 
-  /// List of validators to apply to all FormControls in this FormArrayControl.
+  /// Validators applied to **each child** [FormControl] in this array.
+  ///
+  /// These are propagated to every existing child at construction and to
+  /// new children created via [add]. For array-level rules that need the
+  /// aggregated list (e.g. min length), use [arrayValidators] instead.
   List<ValidatorFn<T>> validators;
+
+  /// Validators applied to the array as a whole, receiving the current
+  /// [values] list.
+  ///
+  /// Use these for rules that depend on the collection (min/max length,
+  /// uniqueness, etc.), as opposed to per-item rules in [validators].
+  List<ArrayValidatorFn<T>> arrayValidators;
+
+  /// Snapshot of the values from the [controls] passed to the constructor,
+  /// used by [reset] to restore the array to its initial shape and values.
+  /// `null` when the array was constructed with `null` controls.
+  final List<T?>? _initialValues;
 
   /// Construct a FormArrayControl.
   ///
-  /// If `controls` is not null, apply the `validators` to each FormControl.
+  /// If [controls] is not null, [validators] are propagated to each child.
+  /// [arrayValidators] are run against the aggregated list during [validate].
   FormArrayControl(
     this.controls, {
     this.dirty = false,
     this.touched = false,
     this.validators = const [],
-  }) {
+    this.arrayValidators = const [],
+  }) : _initialValues =
+            controls?.map((c) => c.value).toList(growable: false) {
     if (controls != null && controls!.isNotEmpty) {
       for (var c in controls!) {
         c.validators = validators;
@@ -72,44 +91,70 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
   @override
   bool get valid => error == null;
 
-  /// Get the values of all FormControls in the list.
-  List<T>? get values =>
-      controls?.where((e) => e.value != null).map((e) => e.value!).toList();
+  /// Values of every child [FormControl], including `null` for empty slots.
+  ///
+  /// Returns `null` when [controls] is itself `null`. An array with three
+  /// empty items yields `[null, null, null]` rather than `[]`, so the
+  /// length matches [controls].
+  List<T?>? get values => controls?.map((e) => e.value).toList();
 
   @override
   void validate() {
     error = null;
-    if (controls == null || controls!.isEmpty) {
-      // No children yet — run the array's own validators against a null
-      // value so `requiredValidator` (and similar) fires on empty arrays.
-      for (var validator in validators) {
-        final e = validator(null);
-        if (e != null) {
-          error = e;
-          break;
-        }
+
+    // Array-level rules run first against the aggregated list.
+    for (var v in arrayValidators) {
+      final e = v(values);
+      if (e != null) {
+        error = e;
+        break;
       }
-    } else {
-      for (var c in controls!) {
-        c.validate();
-        if (c.error != null) {
-          error = c.error;
+    }
+
+    if (error == null) {
+      if (controls == null || controls!.isEmpty) {
+        // Fallback: run per-item validators against null so the README
+        // pattern of `FormArrayControl<String>(null, validators: [required])`
+        // still flags an empty array as invalid when no arrayValidators
+        // are supplied.
+        for (var validator in validators) {
+          final e = validator(null);
+          if (e != null) {
+            error = e;
+            break;
+          }
+        }
+      } else {
+        for (var c in controls!) {
+          c.validate();
+          if (c.error != null) {
+            error = c.error;
+          }
         }
       }
     }
+
     notifyListeners();
   }
 
+  /// Resets the array to the shape and values it had at construction time.
+  ///
+  /// Any items added via [add] after construction are discarded, and the
+  /// original [FormControl]s are rebuilt from the initial value snapshot.
+  /// If the array was constructed with `null` controls, [controls] is set
+  /// back to `null`.
   @override
   void reset() {
     dirty = false;
     touched = false;
     error = null;
 
-    if (controls != null) {
-      for (var c in controls!) {
-        c.reset();
-      }
+    if (_initialValues == null) {
+      controls = null;
+    } else {
+      controls = _initialValues
+          .map((v) => FormControl<T>(v, validators: validators))
+          .toList();
     }
 
     notifyListeners();
