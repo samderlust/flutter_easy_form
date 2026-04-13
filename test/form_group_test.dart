@@ -133,6 +133,93 @@ void main() {
     test("nested group should be in FormGroup", () {});
   });
 
+  group('patchValue / setValue', () {
+    FormGroup buildForm() => FormGroup({
+          'name': FormControl<String>(null),
+          'tags': FormArrayControl<String>(null),
+          'profile': FormGroup({
+            'first': FormControl<String>(null),
+            'last': FormControl<String>(null),
+          }),
+        });
+
+    test('patchValue applies leaves recursively without marking dirty', () {
+      final f = buildForm();
+
+      f.patchValue({
+        'name': 'Sam',
+        'tags': ['flutter', 'dart'],
+        'profile': {'first': 'S', 'last': 'D'},
+      });
+
+      expect(f.control<String>('name').value, 'Sam');
+      expect(f.arrayControl<String>('tags').values, ['flutter', 'dart']);
+      expect(f.control<String>('profile.first').value, 'S');
+      expect(f.control<String>('profile.last').value, 'D');
+      expect(f.isDirty, false);
+    });
+
+    test('patchValue tolerates partial maps and unknown keys', () {
+      final f = buildForm();
+
+      f.patchValue({
+        'name': 'Sam',
+        'unknown': 'ignored',
+        'profile': {'first': 'S'}, // missing `last`
+      });
+
+      expect(f.control<String>('name').value, 'Sam');
+      expect(f.control<String>('profile.first').value, 'S');
+      expect(f.control<String>('profile.last').value, isNull);
+    });
+
+    test('setValue marks affected controls as dirty', () {
+      final f = buildForm();
+
+      f.setValue({
+        'name': 'Sam',
+        'tags': ['a'],
+        'profile': {'first': 'S', 'last': 'D'},
+      });
+
+      expect(f.isDirty, true);
+      expect(f.control<String>('name').dirty, true);
+    });
+
+    test('setValue throws on a missing key', () {
+      final f = buildForm();
+      expect(
+        () => f.setValue({'name': 'Sam'}),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('setValue throws on an unknown key', () {
+      final f = buildForm();
+      expect(
+        () => f.setValue({
+          'name': 'Sam',
+          'tags': <String>[],
+          'profile': {'first': 'a', 'last': 'b'},
+          'extra': 'nope',
+        }),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('setValue throws when a nested group slot is not a Map', () {
+      final f = buildForm();
+      expect(
+        () => f.setValue({
+          'name': 'Sam',
+          'tags': <String>[],
+          'profile': 'not-a-map',
+        }),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
   group('reset vs clear semantics', () {
     test('reset restores initial values across nested groups and arrays', () {
       final f = FormGroup({

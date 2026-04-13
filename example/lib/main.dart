@@ -1,6 +1,6 @@
 import 'package:ezy_form/ezy_form.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(const MyApp());
 
@@ -33,16 +33,33 @@ String? minTwoTags(List<String?>? values) {
 // The form definition. Demonstrates:
 //   * FormGroup at the top
 //   * Nested FormGroup (`info`)
-//   * FormControl<String> / <bool> with initial values (so reset is visible)
+//   * FormControl<String> / <bool> / <int> with initial values
+//     (so reset is visible)
 //   * FormArrayControl with BOTH per-item validators AND arrayValidators
 //   * requiredValidator / requiredTrueValidator
 // ---------------------------------------------------------------------------
 final form = FormGroup({
-  // String field WITH an initial value — `reset()` will restore it.
-  'name': FormControl<String>('Sam', validators: [requiredValidator]),
+  // String field with initial value + minLength validator.
+  'name': FormControl<String>('Sam', validators: [
+    requiredValidator,
+    minLength(2),
+  ]),
 
-  // String field starting empty.
-  'email': FormControl<String>(null, validators: [requiredValidator]),
+  // Email field — uses the built-in emailValidator.
+  'email': FormControl<String>(null, validators: [
+    requiredValidator,
+    emailValidator,
+  ]),
+
+  // Numeric field — uses built-in min/max validators.
+  'age': FormControl<int>(
+    25,
+    validators: [
+      requiredValidator,
+      minValue(18),
+      maxValue(120),
+    ],
+  ),
 
   // Dropdown.
   'gender': FormControl<String>(null, validators: [requiredValidator]),
@@ -58,7 +75,7 @@ final form = FormGroup({
     arrayValidators: [minTwoTags],
   ),
 
-  // Nested FormGroup with initial values — `reset()` restores 'Sam' / 'Derlust'.
+  // Nested FormGroup with initial values — `reset()` restores them.
   'info': FormGroup({
     'firstName': FormControl<String>('Tonny', validators: [requiredValidator]),
     'lastName': FormControl<String>('Alex', validators: [requiredValidator]),
@@ -101,6 +118,8 @@ class DynamicFormExample extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Nested FormGroup section: `info.firstName`, `info.lastName`.
 // Demonstrates dotted-path lookup via formControlName: 'info.firstName'.
+// The controller + focusNode are wired to the TextField, so reset /
+// clear / patchValue all reflect into the text field automatically.
 // ---------------------------------------------------------------------------
 class _ProfileSection extends StatelessWidget {
   const _ProfileSection();
@@ -113,16 +132,22 @@ class _ProfileSection extends StatelessWidget {
         const _SectionHeader('Profile (nested FormGroup)'),
         EzyFormControl<String>(
           formControlName: 'info.firstName',
-          builder: (context, control) => ControlledTextField(
+          builder: (context, control, controller, focusNode) =>
+              _styledTextField(
+            label: 'First name',
             control: control,
-            decoration: const InputDecoration(labelText: 'First name'),
+            controller: controller,
+            focusNode: focusNode,
           ),
         ),
         EzyFormControl<String>(
           formControlName: 'info.lastName',
-          builder: (context, control) => ControlledTextField(
+          builder: (context, control, controller, focusNode) =>
+              _styledTextField(
+            label: 'Last name',
             control: control,
-            decoration: const InputDecoration(labelText: 'Last name'),
+            controller: controller,
+            focusNode: focusNode,
           ),
         ),
       ],
@@ -131,7 +156,11 @@ class _ProfileSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level controls: text + dropdown.
+// Top-level controls: text + typed text + dropdown.
+// Demonstrates all three EzyFormControl patterns in one section:
+//   1. String — controller auto-syncs, no parse/format needed
+//   2. int — provide parse + format for typed text binding
+//   3. Dropdown — ignore controller/focusNode, use onChanged directly
 // ---------------------------------------------------------------------------
 class _TopLevelSection extends StatelessWidget {
   const _TopLevelSection();
@@ -142,23 +171,52 @@ class _TopLevelSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionHeader('Top-level controls'),
+        // Pattern 1: String text field — controller auto-syncs.
         EzyFormControl<String>(
           formControlName: 'name',
-          builder: (context, control) => ControlledTextField(
+          builder: (context, control, controller, focusNode) =>
+              _styledTextField(
+            label: 'Display name',
             control: control,
-            decoration: const InputDecoration(labelText: 'Display name'),
+            controller: controller,
+            focusNode: focusNode,
           ),
         ),
         EzyFormControl<String>(
           formControlName: 'email',
-          builder: (context, control) => ControlledTextField(
+          builder: (context, control, controller, focusNode) =>
+              _styledTextField(
+            label: 'Email',
             control: control,
-            decoration: const InputDecoration(labelText: 'Email'),
+            controller: controller,
+            focusNode: focusNode,
           ),
         ),
+        // Pattern 2: Typed text field — provide parse + format.
+        EzyFormControl<int>(
+          formControlName: 'age',
+          parse: int.tryParse,
+          format: (value) => value?.toString() ?? '',
+          builder: (context, control, controller, focusNode) => TextField(
+            controller: controller,
+            focusNode: focusNode,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: 'Age (FormControl<int>)',
+              errorText: control.valid ? null : control.error,
+              helperText: control.isDirty
+                  ? 'dirty'
+                  : control.isTouched
+                      ? 'touched'
+                      : null,
+            ),
+          ),
+        ),
+        // Pattern 3: Dropdown — ignore controller/focusNode.
         EzyFormControl<String>(
           formControlName: 'gender',
-          builder: (context, control) => DropdownButtonFormField<String>(
+          builder: (context, control, _, __) => DropdownButtonFormField<String>(
             initialValue: control.value,
             onChanged: (value) => control.setValue(value),
             decoration: InputDecoration(
@@ -178,12 +236,7 @@ class _TopLevelSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// FormArrayControl section. Demonstrates:
-//   * arrayControl.add()
-//   * arrayControl.remove(index)
-//   * arrayControl.removeAll()        (NEW in 1.0.0)
-//   * arrayValidators showing an array-level error (NEW in 0.0.2)
-//   * per-item validators showing a child-level error
+// FormArrayControl section.
 // ---------------------------------------------------------------------------
 class _TagsSection extends StatelessWidget {
   const _TagsSection();
@@ -246,6 +299,7 @@ class _TagsSection extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Bool field with `requiredTrueValidator`.
+// Demonstrates ignoring the controller/focusNode (`_, __`).
 // ---------------------------------------------------------------------------
 class _AgreedSection extends StatelessWidget {
   const _AgreedSection();
@@ -254,7 +308,7 @@ class _AgreedSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return EzyFormControl<bool>(
       formControlName: 'agreed',
-      builder: (context, control) => Column(
+      builder: (context, control, _, __) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CheckboxListTile(
@@ -275,11 +329,23 @@ class _AgreedSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Actions row, rendered through `EzyFormConsumer` so it has access to the
-// surrounding FormGroup without lifting state. Demonstrates:
-//   * form.validate()
-//   * form.reset()      (NEW semantic in 1.0.0 — restores initial values)
-//   * form.clear()      (NEW in 1.0.0 — wipes everything to null)
+// Pretend "server response" used by the "Load from server" button below.
+// ---------------------------------------------------------------------------
+const _serverResponse = <String, dynamic>{
+  'name': 'Loaded Name',
+  'email': 'loaded@example.com',
+  'age': 42,
+  'gender': 'other',
+  'agreed': true,
+  'tags': ['flutter', 'dart', 'mobile'],
+  'info': {
+    'firstName': 'Loaded',
+    'lastName': 'Server',
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Actions row via `EzyFormConsumer`.
 // ---------------------------------------------------------------------------
 class _ActionsSection extends StatelessWidget {
   const _ActionsSection();
@@ -302,6 +368,14 @@ class _ActionsSection extends StatelessWidget {
                 },
                 icon: const Icon(Icons.send),
                 label: const Text('Submit (validate)'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  form.patchValue(_serverResponse);
+                  debugPrint('after patchValue: ${form.values}');
+                },
+                icon: const Icon(Icons.cloud_download),
+                label: const Text('Load from server'),
               ),
               OutlinedButton.icon(
                 onPressed: () {
@@ -328,10 +402,7 @@ class _ActionsSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Live state panel — also via `EzyFormConsumer`, so it rebuilds whenever
-// any control in the group notifies. Surfaces:
-//   * form.isValid / isDirty / isTouched
-//   * form.values  (note: array values now include nulls — 0.0.2)
+// Live state panel via `EzyFormConsumer`.
 // ---------------------------------------------------------------------------
 class _LiveStatePanel extends StatelessWidget {
   const _LiveStatePanel();
@@ -382,70 +453,28 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Reusable bridge from `FormControl<String>` to a Material `TextField`.
-//
-// Handles:
-//   * keeping the TextEditingController in sync when the FormControl is
-//     `reset()` / `clear()` / `setValue()` from elsewhere
-//   * marking the control as touched on blur (focus loss)
-//   * surfacing `error` and `dirty` / `touched` in the InputDecoration
-//
-// This boilerplate would go away if `ezy_form` shipped a first-party
-// `EzyTextField` — see `plan/improvement_plan.md` #4.
+// Tiny presentation helper for text fields. All binding logic (controller
+// sync, touched-on-blur) is handled by EzyFormControl itself.
 // ---------------------------------------------------------------------------
-class ControlledTextField extends HookWidget {
-  const ControlledTextField({
-    super.key,
-    required this.control,
-    this.decoration,
-  });
-
-  final FormControl<String> control;
-  final InputDecoration? decoration;
-
-  @override
-  Widget build(BuildContext context) {
-    final textCtrl = useTextEditingController(text: control.value ?? '');
-    final focusNode = useFocusNode();
-
-    // Sync TextEditingController text whenever the FormControl's value
-    // changes from the outside (reset/clear/setValue from elsewhere).
-    useEffect(() {
-      void listener() {
-        final next = control.value ?? '';
-        if (textCtrl.text != next) {
-          textCtrl.text = next;
-        }
-      }
-
-      control.addListener(listener);
-      return () => control.removeListener(listener);
-    }, [control]);
-
-    // Mark the control as touched when focus leaves the field.
-    useEffect(() {
-      void onFocus() {
-        if (!focusNode.hasFocus) control.markAsTouched();
-      }
-
-      focusNode.addListener(onFocus);
-      return () => focusNode.removeListener(onFocus);
-    }, [focusNode]);
-
-    return TextField(
-      controller: textCtrl,
-      focusNode: focusNode,
-      onChanged: control.setValue,
-      decoration: (decoration ?? const InputDecoration()).copyWith(
-        errorText: control.valid ? null : control.error,
-        helperText: control.isDirty
-            ? 'dirty'
-            : control.isTouched
-                ? 'touched'
-                : null,
-      ),
-    );
-  }
+Widget _styledTextField({
+  required String label,
+  required FormControl<String> control,
+  required TextEditingController controller,
+  required FocusNode focusNode,
+}) {
+  return TextField(
+    controller: controller,
+    focusNode: focusNode,
+    decoration: InputDecoration(
+      labelText: label,
+      errorText: control.valid ? null : control.error,
+      helperText: control.isDirty
+          ? 'dirty'
+          : control.isTouched
+              ? 'touched'
+              : null,
+    ),
+  );
 }
 
 extension IndexedIterable<E> on Iterable<E> {

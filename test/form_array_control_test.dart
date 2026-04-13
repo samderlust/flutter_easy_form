@@ -159,6 +159,69 @@ void main() {
     });
   });
 
+  group('FormArrayControl.setValue / patchValue', () {
+    test('patchValue resizes up and writes values without marking dirty',
+        () {
+      final arr = FormArrayControl<String>(null);
+
+      arr.patchValue(['a', 'b', 'c']);
+
+      expect(arr.controls!.length, 3);
+      expect(arr.values, ['a', 'b', 'c']);
+      expect(arr.isDirty, false);
+      expect(arr.isTouched, false);
+    });
+
+    test('patchValue resizes down', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b')
+        ..add('c')
+        ..add('d');
+
+      arr.patchValue(['x', 'y']);
+
+      expect(arr.controls!.length, 2);
+      expect(arr.values, ['x', 'y']);
+    });
+
+    test('patchValue reuses existing FormControl instances in place', () {
+      final arr = FormArrayControl<String>([
+        FormControl<String>('a'),
+        FormControl<String>('b'),
+      ]);
+      final firstRef = arr.controls![0];
+      final secondRef = arr.controls![1];
+
+      arr.patchValue(['A', 'B']);
+
+      expect(identical(arr.controls![0], firstRef), true);
+      expect(identical(arr.controls![1], secondRef), true);
+      expect(arr.values, ['A', 'B']);
+    });
+
+    test('setValue marks the array and its children as dirty', () {
+      final arr = FormArrayControl<String>(null);
+
+      arr.setValue(['a', 'b']);
+
+      expect(arr.values, ['a', 'b']);
+      expect(arr.isDirty, true);
+      expect(arr.isTouched, true);
+      expect(arr.controls!.every((c) => c.dirty), true);
+    });
+
+    test('setValue clears dirty after a subsequent reset', () {
+      final arr = FormArrayControl<String>([FormControl<String>('initial')]);
+      arr.setValue(['edited']);
+      expect(arr.isDirty, true);
+
+      arr.reset();
+      expect(arr.values, ['initial']);
+      expect(arr.isDirty, false);
+    });
+  });
+
   group('FormArrayControl.remove', () {
     test('removes the control at the given index', () {
       final arr = FormArrayControl<String>(null)

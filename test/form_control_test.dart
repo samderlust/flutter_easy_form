@@ -95,6 +95,45 @@ void main() {
       expect(ctrl.dirty, false);
     });
 
+    test('setValue is a no-op when the value is unchanged', () {
+      final ctrl = FormControl<String>('same');
+      var notified = 0;
+      ctrl.addListener(() => notified++);
+
+      ctrl.setValue('same');
+
+      expect(notified, 0);
+      expect(ctrl.dirty, false);
+      expect(ctrl.touched, false);
+    });
+
+    test('setValue with markDirty: false leaves dirty/touched untouched', () {
+      final ctrl = FormControl<String>('initial');
+      ctrl.setValue('next', markDirty: false);
+
+      expect(ctrl.value, 'next');
+      expect(ctrl.dirty, false);
+      expect(ctrl.touched, false);
+    });
+
+    test('setValue with markDirty: false still notifies listeners', () {
+      final ctrl = FormControl<String>('initial');
+      var notified = 0;
+      ctrl.addListener(() => notified++);
+
+      ctrl.setValue('next', markDirty: false);
+      expect(notified, 1);
+    });
+
+    test('patchValue writes the value without marking dirty', () {
+      final ctrl = FormControl<String>('initial');
+      ctrl.patchValue('from-server');
+
+      expect(ctrl.value, 'from-server');
+      expect(ctrl.dirty, false);
+      expect(ctrl.touched, false);
+    });
+
     test('equality is identity-based', () {
       final a = FormControl<String>('same');
       final b = FormControl<String>('same');

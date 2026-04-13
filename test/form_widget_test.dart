@@ -82,7 +82,7 @@ void main() {
         home: Scaffold(
           body: EzyFormControl<String>(
             formControlName: 'email',
-            builder: (context, control) => const SizedBox(),
+            builder: (context, control, _, __) => const SizedBox(),
           ),
         ),
       ),
@@ -139,9 +139,10 @@ class _TestingFormAppState extends State<TestingFormApp> {
           children: [
             EzyFormControl<String>(
               formControlName: 'email',
-              builder: (context, control) => TextField(
+              builder: (context, control, controller, focusNode) => TextField(
                 key: const ValueKey('email'),
-                onChanged: (value) => control.setValue(value),
+                controller: controller,
+                focusNode: focusNode,
                 decoration: InputDecoration(
                   labelText: 'Email',
                   errorText: control.valid ? null : control.error,

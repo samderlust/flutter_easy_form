@@ -40,15 +40,16 @@ slots, which composes with `FormGroup.clear()`); `removeAll()` is the
 explicit "drop every item" verb for use cases like a "Remove all tags"
 button or rebuilding a dynamic form from scratch.
 
-### 2. `setValue` always marks dirty/touched and always notifies
-Loading values from a server response is currently impossible without
-flipping `dirty`/`touched` manually afterwards. `setValue` also notifies
-on no-op writes, causing redundant rebuilds.
+### 2. `setValue` no-op short-circuit + `markDirty` + `patchValue` — DONE in 1.0.0
+Previously `setValue` always flipped `dirty`/`touched` and always notified
+listeners, even on no-op writes. This made "load from a server response"
+impossible without manually unsetting the flags afterward, and caused
+redundant widget rebuilds.
 
-**Fix:**
+**Resolution (shipped in 1.0.0):**
 ```dart
 void setValue(T? v, {bool markDirty = true}) {
-  if (v == _value) return;
+  if (v == _value) return; // no-op short-circuit
   _value = v;
   if (markDirty) {
     dirty = true;
@@ -56,35 +57,119 @@ void setValue(T? v, {bool markDirty = true}) {
   }
   notifyListeners();
 }
+
+void patchValue(T? v) => setValue(v, markDirty: false);
 ```
-Plus a sibling `patchValue(T? v)` that never marks dirty.
 
-### 3. No `FormGroup.patchValue(Map)` / `setValue(Map)`
-Loading an API response into a form is the #1 form-library use case and
-currently requires walking the group manually and calling `setValue` per
-leaf. A recursive `patchValue` keyed off the group structure would change
-the example from ~15 lines to one call.
+### 3. `FormGroup.setValue` / `patchValue` — DONE in 1.0.0
+Loading an API response into a form is the #1 form-library use case.
+Previously this required walking the group manually and calling
+`setValue` per leaf — typically 10–20 lines that had to stay in sync
+with the form structure.
 
-**API sketch:**
+**Resolution (shipped in 1.0.0):**
+
 ```dart
-void patchValue(Map<String, dynamic> values);
-void setValueFromMap(Map<String, dynamic> values); // strict variant
+// Lenient: ignores unknown keys, doesn't mark anything dirty.
+form.patchValue({
+  'name': 'Sam',
+  'tags': ['flutter', 'dart'],
+  'profile': {'first': 'S', 'last': 'D'},
+});
+
+// Strict: throws on missing/unknown keys, marks edits as dirty.
+form.setValue({...}); // requires every key in the group
 ```
 
-### 4. No built-in field widgets
-The example's `ControlledTextField` (44 lines of `HookWidget` with focus and
-text-controller wiring) reveals the biggest UX gap. Every consumer rewrites
-the same boilerplate to:
+Both methods recurse into nested `FormGroup`s and dispatch `List`s into
+nested `FormArrayControl`s. `FormArrayControl` got matching
+`setValue(List<T?>)` / `patchValue(List<T?>)` methods that resize the
+children list in place — existing `FormControl` instances are reused
+where possible, so widgets holding direct references stay valid.
+
+### 4. Built-in text binding in `EzyFormControl` — DONE in 1.0.0
+The example's `ControlledTextField` (44 lines of `HookWidget` with focus
+and text-controller wiring) was the biggest UX gap. Every consumer was
+rewriting the same boilerplate to:
 
 - create a `TextEditingController`
+- two-way sync `controller.text ↔ control.value` (the only genuinely
+  hard piece — infinite-loop risk, has to handle external `reset` /
+  `clear` / `patchValue`)
 - mark touched on focus loss
-- mark dirty on change
-- hook `onReset` to clear the controller
 
-**Fix:** ship first-party `EzyTextField`, `EzyCheckbox`, `EzyDropdown`
-widgets that take a `formControlName` and handle all of the above
-internally. This is what makes `flutter_form_builder` / `reactive_forms`
-feel ergonomic.
+**Design decision: one widget, not separate bindings.** An earlier
+iteration shipped `EzyTextBinding` / `EzyTypedTextBinding<T>` as
+standalone widgets. This worked but introduced two new names users had
+to learn, broke the `EzyForm*` naming convention, and felt disconnected
+from the package's core identity of simplicity.
+
+**Resolution: merge the binding into `EzyFormControl` itself.** The
+builder signature changed from `(context, control)` to
+`(context, control, controller, focusNode)`. A `TextEditingController`
+and `FocusNode` are always created and passed in the builder — for text
+inputs, wire them up; for non-text inputs, ignore them (`_, __`).
+
+Three patterns, one widget:
+
+```dart
+// 1. String text field — controller auto-syncs, no parse/format needed
+EzyFormControl<String>(
+  formControlName: 'email',
+  builder: (context, control, controller, focusNode) => TextField(
+    controller: controller,
+    focusNode: focusNode,
+    decoration: InputDecoration(
+      errorText: control.valid ? null : control.error,
+    ),
+  ),
+)
+
+// 2. Typed text field — supply parse + format
+EzyFormControl<int>(
+  formControlName: 'age',
+  parse: int.tryParse,
+  format: (v) => v?.toString() ?? '',
+  builder: (context, control, controller, focusNode) => TextField(
+    controller: controller,
+    focusNode: focusNode,
+    keyboardType: TextInputType.number,
+  ),
+)
+
+// 3. Non-text (checkbox, dropdown, etc.) — ignore controller/focusNode
+EzyFormControl<bool>(
+  formControlName: 'agreed',
+  builder: (context, control, _, __) => Checkbox(
+    value: control.value ?? false,
+    onChanged: (v) => control.setValue(v),
+  ),
+)
+```
+
+**How it works internally:**
+- For `String`: controller auto-syncs with the control (identity
+  parse/format). Handles `reset`, `clear`, `patchValue` automatically.
+- For non-`String` with `parse`/`format`: controller syncs via those
+  callbacks. Unparseable text writes `null` to the control but the
+  binding **never** rewrites the user's raw text mid-keystroke.
+- For non-`String` without `parse`/`format`: controller stays idle —
+  user ignores it and uses `onChanged` directly.
+- `FocusNode` always fires touched-on-blur.
+- Optional `controller:` / `focusNode:` parameters let callers supply
+  externally-owned instances.
+
+**Why this is better than standalone binding widgets:**
+- ONE widget to learn, not three.
+- Zero naming confusion — no `EzyTextBinding` / `EzyTypedTextBinding`
+  breaking the `EzyForm*` convention.
+- The simple `EzyFormControl + onChanged` pattern from the README still
+  works — just add `_, __` for the unused params.
+- Stays headless — the user still picks their text-input widget.
+
+**Opinionated widgets are deliberately deferred** to a future companion
+package (`ezy_form_fields` or `package:ezy_form/material.dart`). The
+headless core stays lean.
 
 ### 5. `FormControl.onReset` is a single callback — second registrant overwrites the first
 If two widgets observe the same control (e.g. a text field and a counter
@@ -96,16 +181,15 @@ consumers can subscribe to.
 
 ## Medium impact — missing standard features
 
-### 6. Limited validator library
-Only `requiredValidator` and `requiredTrueValidator` ship today. The bare
-minimum extras every form library provides:
+### 6. Built-in validator library — DONE in 1.0.0
+Previously only `requiredValidator` and `requiredTrueValidator` shipped.
 
-- `emailValidator`
-- `minLength(n)` / `maxLength(n)`
-- `min(n)` / `max(n)` (numeric)
-- `pattern(RegExp)`
-- `equalTo(otherControl)` (password confirm)
-- `compose([...])` / `composeOr([...])`
+**Resolution (shipped in 1.0.0):** added `emailValidator`,
+`minLength(n)`, `maxLength(n)`, `min(n)`, `max(n)`,
+`pattern(RegExp, {message})`, `equalTo(otherControl, {message})`,
+`compose([...])`, and `composeOr([...])`. All factory validators return
+`null` on `null`/empty input so they compose cleanly with
+`requiredValidator`.
 
 ### 7. Single-string `error` field — no multi-error support
 When a field fails both `required` and `minLength`, the user only sees one
@@ -210,12 +294,15 @@ map's value type would catch this at compile time.
 1. ~~**`FormControl.reset()` restores the initial value** — bug parity with
    `FormArrayControl`.~~ **Shipped in 1.0.0 along with `clear()` /
    `removeAll()` across all three model types.** (#1)
-2. **`setValue` short-circuits on no-op + optional `markDirty: false`,
-   plus `FormGroup.patchValue`** — unlocks "load from API". (#2, #3)
-3. **First-party `EzyTextField` / `EzyCheckbox` / `EzyDropdown`** — biggest
-   example/README cleanup. (#4)
-4. **Built-in validator library** (`email`, `minLength`, `maxLength`, `min`,
-   `max`, `pattern`, `compose`). (#6)
+2. ~~**`setValue` short-circuits on no-op + optional `markDirty: false`,
+   plus `FormGroup.patchValue`**~~ **Shipped in 1.0.0.** (#2, #3)
+3. ~~**First-party `EzyTextField` / `EzyCheckbox` / `EzyDropdown`**~~
+   **Resolved differently in 1.0.0**: merged text binding directly into
+   `EzyFormControl` (builder now receives `controller` + `focusNode`).
+   Standalone `EzyTextBinding` / `EzyTypedTextBinding` were shipped then
+   deleted in favor of this unified approach. Opt-in Material widgets
+   deferred to a companion package. (#4)
+4. ~~**Built-in validator library**~~ **Shipped in 1.0.0.** (#6)
 5. **`disabled` state on `FormControl`.** (#9)
 6. **Async validators + `pending` / debounce.** (#8)
 7. **Multi-error map + i18n-friendly validator messages.** (#7, #12)

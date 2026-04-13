@@ -107,6 +107,97 @@ class FormGroup with ChangeNotifier {
     return map;
   }
 
+  /// Patches the form group with values from [values].
+  ///
+  /// Unknown keys are ignored. Nested maps are dispatched into matching
+  /// nested [FormGroup]s, and lists are dispatched into matching
+  /// [FormArrayControl]s. Controls **are not** marked as `dirty` /
+  /// `touched`, so this is the right primitive for loading a server
+  /// response into a form without flipping its "user has edited" state.
+  ///
+  /// See [setValue] for the strict variant that requires every key to
+  /// be present and marks edits as dirty.
+  void patchValue(Map<String, dynamic> values) {
+    _applyMap(values, markDirty: false, strict: false);
+  }
+
+  /// Sets every value in the form group from [values], marking each
+  /// affected control as `dirty` / `touched`.
+  ///
+  /// Strict: throws [ArgumentError] if [values] is missing any key
+  /// declared in the group, contains an unknown key, or has a value of
+  /// the wrong shape (e.g. a `List` for a [FormGroup] slot). Use
+  /// [patchValue] for the lenient variant.
+  void setValue(Map<String, dynamic> values) {
+    _applyMap(values, markDirty: true, strict: true);
+  }
+
+  void _applyMap(
+    Map<String, dynamic> values, {
+    required bool markDirty,
+    required bool strict,
+  }) {
+    if (strict) {
+      for (final key in group.keys) {
+        if (!values.containsKey(key)) {
+          throw ArgumentError(
+            'FormGroup.setValue is missing key "$key". Use patchValue '
+            'for partial updates.',
+          );
+        }
+      }
+      for (final key in values.keys) {
+        if (!group.containsKey(key)) {
+          throw ArgumentError(
+            'FormGroup.setValue received unknown key "$key".',
+          );
+        }
+      }
+    }
+
+    for (final entry in values.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      final node = group[key];
+      if (node == null) continue; // unknown key in lenient mode
+
+      if (node is FormGroup) {
+        if (value is! Map<String, dynamic>) {
+          if (strict) {
+            throw ArgumentError(
+              'Expected Map for nested FormGroup "$key", got '
+              '${value.runtimeType}.',
+            );
+          }
+          continue;
+        }
+        if (markDirty) {
+          node.setValue(value);
+        } else {
+          node.patchValue(value);
+        }
+      } else if (node is FormArrayControl) {
+        if (value is! List) {
+          if (strict) {
+            throw ArgumentError(
+              'Expected List for FormArrayControl "$key", got '
+              '${value.runtimeType}.',
+            );
+          }
+          continue;
+        }
+        if (markDirty) {
+          node.setValue(value);
+        } else {
+          node.patchValue(value);
+        }
+      } else if (node is FormControl) {
+        node.setValue(value, markDirty: markDirty);
+      }
+    }
+    notifyListeners();
+  }
+
   /// Validates all flat controls and notifies listeners.
   /// Returns a boolean value indicating validity.
   bool validate() {

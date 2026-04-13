@@ -134,13 +134,31 @@ class FormControl<T> with ChangeNotifier implements FormControlBase {
 
   /// Sets the value of the form control.
   ///
-  /// [v] The new value of the form control.
-  void setValue(T? v) {
+  /// By default this marks the control as `dirty` and `touched` (it
+  /// represents a user edit). Pass `markDirty: false` for programmatic
+  /// updates that should not flip those flags — e.g. populating a form
+  /// from a server response. See also [patchValue].
+  ///
+  /// No-op when [v] equals the current value: nothing changes and no
+  /// listeners are notified.
+  void setValue(T? v, {bool markDirty = true}) {
+    if (v == _value) return;
     _value = v;
-    dirty = true;
-    touched = true;
+    if (markDirty) {
+      dirty = true;
+      touched = true;
+    }
     notifyListeners();
   }
+
+  /// Programmatically writes [v] to the control without marking it as
+  /// `dirty` or `touched`. Convenience wrapper around
+  /// `setValue(v, markDirty: false)`.
+  ///
+  /// Use this when loading values from an external source (e.g. an API
+  /// response) so the form's `isDirty` keeps tracking only true user
+  /// edits.
+  void patchValue(T? v) => setValue(v, markDirty: false);
 
   @override
   String toString() {

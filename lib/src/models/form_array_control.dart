@@ -195,6 +195,44 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
     notifyListeners();
   }
 
+  /// Replaces the array's values with [values], resizing the children
+  /// list to match. Marks the array and its children as dirty/touched.
+  ///
+  /// Existing [FormControl] instances are reused where possible (so
+  /// widgets that hold direct references stay valid); excess children
+  /// are removed and missing ones are appended.
+  void setValue(List<T?> values) => _applyValues(values, markDirty: true);
+
+  /// Same as [setValue] but does not mark the array or its children as
+  /// `dirty` / `touched`. Use this to load values from a server response
+  /// without triggering "user has edited the form" UI state.
+  void patchValue(List<T?> values) =>
+      _applyValues(values, markDirty: false);
+
+  void _applyValues(List<T?> values, {required bool markDirty}) {
+    final list = controls ??= <FormControl<T>>[];
+
+    // Resize down.
+    while (list.length > values.length) {
+      list.removeLast();
+    }
+    // Resize up.
+    while (list.length < values.length) {
+      list.add(FormControl<T>(null, validators: validators));
+    }
+    // Update each child in place. FormControl.setValue short-circuits
+    // on no-op, so this only notifies children whose value actually
+    // changed.
+    for (var i = 0; i < values.length; i++) {
+      list[i].setValue(values[i], markDirty: markDirty);
+    }
+    if (markDirty) {
+      dirty = true;
+      touched = true;
+    }
+    notifyListeners();
+  }
+
   @override
   void markAsDirty() {
     dirty = true;

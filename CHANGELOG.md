@@ -10,6 +10,17 @@
   `null`, call the new `clear()` instead.
 * **`FormControlBase` interface gained a `clear()` method.** Any custom
   implementer of this interface must add it.
+* **`FormControl.setValue` is now a no-op when the new value equals the
+  current value.** No listeners are notified and `dirty` / `touched` are
+  not flipped. Most consumers won't notice this; if you relied on
+  `setValue` to forcibly retrigger a rebuild on an unchanged value, call
+  `notifyListeners()` directly or use `markAsDirty()` / `markAsTouched()`.
+* **`EzyFormControl` builder signature changed** from
+  `(BuildContext, FormControl<T>)` to
+  `(BuildContext, FormControl<T>, TextEditingController, FocusNode)`.
+  Migration: add `controller, focusNode` params (or `_, __` if unused).
+  `EzyFormControl` is now a `StatefulWidget` that manages the
+  controller/focus-node lifecycle internally.
 
 ### New features
 
@@ -24,6 +35,57 @@
 * **`FormArrayControl.removeAll()`** — drops every child outright,
   leaving `controls = []`. Use this when you want to start over from
   scratch (e.g. a "Remove all tags" button or rebuilding a dynamic form).
+
+* **`FormControl.setValue` accepts `markDirty: false`** for programmatic
+  writes that should not flip the `dirty` / `touched` flags (e.g.
+  populating a form from an API response).
+* **`FormControl.patchValue(T? v)`** — convenience wrapper around
+  `setValue(v, markDirty: false)`.
+* **`FormGroup.patchValue(Map)`** — recursively writes a (possibly
+  partial) map of values into the group, descending into nested
+  `FormGroup`s and dispatching `List`s into nested `FormArrayControl`s.
+  Unknown keys are ignored. Nothing is marked dirty. This is the
+  one-liner replacement for "load form values from an API response".
+* **`FormGroup.setValue(Map)`** — strict variant of `patchValue` that
+  throws `ArgumentError` on missing or unknown keys, on shape mismatches
+  (e.g. a `List` for a `FormGroup` slot), and marks affected controls as
+  `dirty` / `touched`.
+* **`FormArrayControl.setValue(List<T?>)` /
+  `patchValue(List<T?>)`** — resize the array's children list in place
+  to match the new values. Existing `FormControl` instances are reused
+  where possible, so widgets holding direct references stay valid.
+* **`EzyFormControl` now provides a `TextEditingController` and
+  `FocusNode` in its builder** (breaking: builder signature changed
+  from `(context, control)` to `(context, control, controller,
+  focusNode)`). For text inputs, wire the controller and focus node to
+  get automatic two-way sync including external writes from `reset`,
+  `clear`, `patchValue`, etc. For non-text inputs (checkbox, dropdown,
+  slider, etc.) just ignore them (`_, __`). This replaces the
+  previously-separate `EzyTextBinding` / `EzyTypedTextBinding` — one
+  widget handles all cases.
+* **Optional `parse` / `format` callbacks on `EzyFormControl`** for
+  typed text binding. Supply them when `T` is not `String` (e.g. `int`,
+  `double`, `DateTime`). The binding never rewrites the user's raw text
+  mid-keystroke: typing `"abc"` into an int field leaves `"abc"` visible
+  while the model holds `null`.
+* **Optional `controller` / `focusNode` parameters on `EzyFormControl`**
+  let callers supply externally-owned instances for imperative access.
+
+* **Built-in validator library** — new validators shipped alongside the
+  existing `requiredValidator` / `requiredTrueValidator`:
+  - `emailValidator` — permissive email pattern check
+  - `minLength(n)` / `maxLength(n)` — String length bounds
+  - `min(n)` / `max(n)` — numeric bounds (works with `int` and `double`)
+  - `pattern(RegExp, {message})` — regex match with optional custom error
+  - `equalTo(otherControl, {message})` — cross-control equality (e.g.
+    confirm password)
+  - `compose([...])` — runs all validators, returns first error (AND)
+  - `composeOr([...])` — returns null if any passes (OR), last error
+    if all fail
+
+  All factory validators return `null` on `null`/empty input so they
+  compose cleanly with `requiredValidator` — put `requiredValidator`
+  first to enforce presence, then the shape/range validator after it.
 
 ### Reset / clear / removeAll cheat sheet
 
