@@ -99,6 +99,35 @@ class FormGroup with ChangeNotifier implements FormNode {
     return map;
   }
 
+  /// Returns a JSON-compatible `Map<String, dynamic>` mirroring the
+  /// group shape.
+  ///
+  /// For each [FormControl] that has a [FormControl.toJson] callback,
+  /// the callback is used to convert the value. Otherwise the raw value
+  /// is included (same as [values]).
+  ///
+  /// Nested [FormGroup]s recurse into [toJson], and
+  /// [FormArrayControl]s map each child through its own `toJson`
+  /// callback (if present).
+  ///
+  /// Use this instead of [values] when you need to feed the result
+  /// into `jsonEncode`.
+  Map<String, dynamic> toJsonMap() {
+    final map = <String, dynamic>{};
+    for (var key in group.keys) {
+      final v = group[key];
+
+      if (v is FormGroup) {
+        map[key] = v.toJsonMap();
+      } else if (v is FormControl) {
+        map[key] = v.jsonValue;
+      } else if (v is FormArrayControl) {
+        map[key] = v.jsonValues;
+      }
+    }
+    return map;
+  }
+
   /// Patches the form group with values from [values].
   ///
   /// Unknown keys are ignored. Nested maps are dispatched into matching
@@ -184,7 +213,9 @@ class FormGroup with ChangeNotifier implements FormNode {
           node.patchValue(value);
         }
       } else if (node is FormControl) {
-        node.setValue(value, markDirty: markDirty);
+        final parsed =
+            node.fromJson != null ? node.fromJson!(value) : value;
+        node.setValue(parsed, markDirty: markDirty);
       }
     }
     notifyListeners();

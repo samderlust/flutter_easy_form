@@ -275,9 +275,12 @@ You can `form.control('profile.firstName').setValue(x)`, but a
 `form.setValueAt('profile.firstName', x)` would be friendlier and would
 power the `patchValue` from #3.
 
-### 18. `FormControl<DateTime>` won't survive `jsonEncode(form.values)`
-Either document this clearly or add an opt-in `toJson()` on `FormGroup`
-that serializes known non-JSON types.
+### 18. `FormControl<DateTime>` won't survive `jsonEncode(form.values)` — DONE in 1.0.0
+Added opt-in `toJson` / `fromJson` callbacks on `FormControl` and
+`FormArrayControl`. `FormGroup.toJsonMap()` walks the tree calling each
+control's `toJson`. `patchValue` / `setValue` automatically apply
+`fromJson` when loading raw JSON maps. Controls without callbacks
+behave exactly as before.
 
 ### 19. README doesn't show: nested groups, array validators, async, dynamic add/remove, or `EzyFormConsumer`
 The package has features the docs hide.

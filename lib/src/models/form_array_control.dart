@@ -7,7 +7,9 @@ import 'form_control_base.dart';
 ///
 /// It provides methods to manipulate the list of FormControl,
 /// validate and reset the state.
-class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNode {
+class FormArrayControl<T>
+    with ChangeNotifier
+    implements FormControlBase, FormNode {
   /// Flag indicating if the control has been modified.
   bool dirty;
 
@@ -34,6 +36,16 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
   /// uniqueness, etc.), as opposed to per-item rules in [validators].
   List<ArrayValidatorFn<T>> arrayValidators;
 
+  /// Optional callback that converts each child's value to a
+  /// JSON-compatible type. Propagated to children created via [add],
+  /// [reset], and [_applyValues].
+  final Object? Function(T? value)? _toJson;
+
+  /// Optional callback that converts a JSON-compatible value back to
+  /// this array's element type. Used when loading values via
+  /// [patchValue] / [setValue].
+  final T? Function(dynamic value)? _fromJson;
+
   /// Snapshot of the values from the [controls] passed to the constructor,
   /// used by [reset] to restore the array to its initial shape and values.
   /// `null` when the array was constructed with `null` controls.
@@ -43,14 +55,19 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
   ///
   /// If [controls] is not null, [validators] are propagated to each child.
   /// [arrayValidators] are run against the aggregated list during [validate].
+  /// [toJson] / [fromJson] are propagated to children for JSON
+  /// serialization / deserialization.
   FormArrayControl(
     this.controls, {
     this.dirty = false,
     this.touched = false,
     this.validators = const [],
     this.arrayValidators = const [],
-  }) : _initialValues =
-            controls?.map((c) => c.value).toList(growable: false) {
+    Object? Function(T? value)? toJson,
+    T? Function(dynamic value)? fromJson,
+  })  : _toJson = toJson,
+        _fromJson = fromJson,
+        _initialValues = controls?.map((c) => c.value).toList(growable: false) {
     if (controls != null && controls!.isNotEmpty) {
       for (var c in controls!) {
         c.validators = validators;
@@ -63,7 +80,12 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
   /// If `value` is provided, add it to the list of FormControls.
   void add([T? value]) {
     controls ??= [];
-    var control = FormControl<T>(value, validators: validators);
+    var control = FormControl<T>(
+      value,
+      validators: validators,
+      toJson: _toJson,
+      fromJson: _fromJson,
+    );
     controls!.add(control);
     notifyListeners();
   }
@@ -81,15 +103,22 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
   }
 
   @override
-  bool get isDirty =>
-      dirty || (controls?.any((c) => c.isDirty) ?? false);
+  bool get isDirty => dirty || (controls?.any((c) => c.isDirty) ?? false);
 
   @override
-  bool get isTouched =>
-      touched || (controls?.any((c) => c.isTouched) ?? false);
+  bool get isTouched => touched || (controls?.any((c) => c.isTouched) ?? false);
 
   @override
   bool get valid => error == null;
+
+  /// Returns the JSON-compatible values of every child.
+  ///
+  /// If the array has a `toJson` callback, it is applied to each child's
+  /// value. Otherwise the raw value is returned (same as [values]).
+  List<Object?>? get jsonValues => controls?.map((c) {
+        if (_toJson != null) return _toJson(c.value);
+        return c.jsonValue;
+      }).toList();
 
   /// Values of every child [FormControl], including `null` for empty slots.
   ///
@@ -156,7 +185,12 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
       controls = null;
     } else {
       controls = _initialValues
-          .map((v) => FormControl<T>(v, validators: validators))
+          .map((v) => FormControl<T>(
+                v,
+                validators: validators,
+                toJson: _toJson,
+                fromJson: _fromJson,
+              ))
           .toList();
     }
 
@@ -201,15 +235,20 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
   /// Existing [FormControl] instances are reused where possible (so
   /// widgets that hold direct references stay valid); excess children
   /// are removed and missing ones are appended.
-  void setValue(List<T?> values) => _applyValues(values, markDirty: true);
+  /// Replaces the array's values with [values], resizing the children
+  /// list to match. Marks the array and its children as dirty/touched.
+  ///
+  /// Accepts `List<T?>` or a raw `List` (e.g. from JSON). When
+  /// [fromJson] is set, each element is run through it before being
+  /// stored.
+  void setValue(List values) => _applyValues(values, markDirty: true);
 
   /// Same as [setValue] but does not mark the array or its children as
   /// `dirty` / `touched`. Use this to load values from a server response
   /// without triggering "user has edited the form" UI state.
-  void patchValue(List<T?> values) =>
-      _applyValues(values, markDirty: false);
+  void patchValue(List values) => _applyValues(values, markDirty: false);
 
-  void _applyValues(List<T?> values, {required bool markDirty}) {
+  void _applyValues(List values, {required bool markDirty}) {
     final list = controls ??= <FormControl<T>>[];
 
     // Resize down.
@@ -218,13 +257,20 @@ class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNo
     }
     // Resize up.
     while (list.length < values.length) {
-      list.add(FormControl<T>(null, validators: validators));
+      list.add(FormControl<T>(
+        null,
+        validators: validators,
+        toJson: _toJson,
+        fromJson: _fromJson,
+      ));
     }
     // Update each child in place. FormControl.setValue short-circuits
     // on no-op, so this only notifies children whose value actually
     // changed.
     for (var i = 0; i < values.length; i++) {
-      list[i].setValue(values[i], markDirty: markDirty);
+      final raw = values[i];
+      final parsed = _fromJson != null ? _fromJson(raw) : raw as T?;
+      list[i].setValue(parsed, markDirty: markDirty);
     }
     if (markDirty) {
       dirty = true;

@@ -306,6 +306,30 @@ form.setValue({ ... });
 final map = form.values;  // nested Map<String, dynamic> mirroring the group shape
 ```
 
+### JSON serialization (`toJson` / `fromJson`)
+
+Non-primitive types like `DateTime` break `jsonEncode(form.values)`. Add `toJson` / `fromJson` callbacks to handle serialization:
+
+```dart
+final form = FormGroup({
+  'name': FormControl<String>(null),
+  'birthDate': FormControl<DateTime>(
+    null,
+    toJson: (v) => v?.toIso8601String(),
+    fromJson: (v) => v != null ? DateTime.tryParse(v) : null,
+  ),
+});
+
+// Serialize — DateTime becomes an ISO string
+final json = form.toJsonMap();  // {'name': null, 'birthDate': '1990-01-15T00:00:00.000'}
+jsonEncode(json);               // works!
+
+// Deserialize — ISO string becomes a DateTime
+form.patchValue(jsonDecode(response.body));  // fromJson parses automatically
+```
+
+Controls without callbacks behave exactly as before — the raw value is used. `FormArrayControl` also supports `toJson` / `fromJson`, applied to each child element.
+
 ### State getters
 
 ```dart
