@@ -7,7 +7,7 @@ import 'form_control_base.dart';
 ///
 /// It provides methods to manipulate the list of FormControl,
 /// validate and reset the state.
-class FormArrayControl<T> with ChangeNotifier implements FormControlBase {
+class FormArrayControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// Flag indicating if the control has been modified.
   bool dirty;
 

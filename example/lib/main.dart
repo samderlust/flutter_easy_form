@@ -67,6 +67,9 @@ final form = FormGroup({
   // Bool checkbox with `requiredTrueValidator`.
   'agreed': FormControl<bool>(false, validators: [requiredTrueValidator]),
 
+  // Only shown when 'agreed' is true — demonstrates EzyFormControlWatcher.
+  'licenseNumber': FormControl<String>(null),
+
   // Array with BOTH per-item rules (each child must be non-empty)
   // AND an array-level rule (must have at least 2 entries).
   'tags': FormArrayControl<String>(
@@ -103,6 +106,8 @@ class DynamicFormExample extends StatelessWidget {
               _TagsSection(),
               SizedBox(height: 16),
               _AgreedSection(),
+              SizedBox(height: 16),
+              _GreetingBanner(),
               SizedBox(height: 24),
               _ActionsSection(),
               SizedBox(height: 24),
@@ -298,32 +303,90 @@ class _TagsSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Bool field with `requiredTrueValidator`.
-// Demonstrates ignoring the controller/focusNode (`_, __`).
+// Bool field + conditional field via EzyFormControlWatcher.
+// The license number field only appears when 'agreed' is true.
 // ---------------------------------------------------------------------------
 class _AgreedSection extends StatelessWidget {
   const _AgreedSection();
 
   @override
   Widget build(BuildContext context) {
-    return EzyFormControl<bool>(
-      formControlName: 'agreed',
-      builder: (context, control, _, __) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CheckboxListTile(
-            value: control.value ?? false,
-            onChanged: (value) => control.setValue(value),
-            title: const Text('I agree to the terms'),
-            contentPadding: EdgeInsets.zero,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        EzyFormControl<bool>(
+          formControlName: 'agreed',
+          builder: (context, control, _, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CheckboxListTile(
+                value: control.value ?? false,
+                onChanged: (value) => control.setValue(value),
+                title: const Text('I agree to the terms'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              if (!control.valid)
+                Text(
+                  'You must agree to continue',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+            ],
           ),
-          if (!control.valid)
-            Text(
-              'You must agree to continue',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-        ],
+        ),
+        // EzyFormControlWatcher: watches 'agreed' and conditionally
+        // shows the license number field without nesting inside the
+        // checkbox builder.
+        EzyFormControlWatcher<bool>(
+          formControlName: 'agreed',
+          builder: (context, agreed) {
+            if (agreed != true) return const SizedBox.shrink();
+            return EzyFormControl<String>(
+              formControlName: 'licenseNumber',
+              builder: (context, control, controller, focusNode) => TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  labelText: 'License number (shown when agreed)',
+                  errorText: control.valid ? null : control.error,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// EzyFormWatcher demo: watches multiple controls via a selector function.
+// Uses a Dart record for type-safe multi-value watching.
+// ---------------------------------------------------------------------------
+class _GreetingBanner extends StatelessWidget {
+  const _GreetingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return EzyFormWatcher(
+      selector: (form) => (
+        form.control<String>('info.firstName').value,
+        form.control<String>('info.lastName').value,
+        form.control<bool>('agreed').value,
       ),
+      builder: (context, values) {
+        final (firstName, lastName, agreed) = values;
+        if (agreed != true) return const SizedBox.shrink();
+        return Card(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              'Welcome, ${firstName ?? ''} ${lastName ?? ''}!',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        );
+      },
     );
   }
 }

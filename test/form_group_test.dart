@@ -91,42 +91,9 @@ void main() {
       expect(groupCtrl.values.keys, contains(anyOf('firstName', 'lastName')));
     });
 
-    test('Invalid type should throw', () {
-      final f = FormGroup(
-        {
-          "a": {
-            "b": FormControl<String>(null, validators: [requiredValidator]),
-            "c": {
-              "d": FormControl<String>(null, validators: [requiredValidator]),
-            }
-          }
-        },
-      );
-
-      expect(() => f.groupControl('a'), throwsArgumentError);
-      expect(() => f.groupControl('a.c'), throwsArgumentError);
-      expect(() => f.control('a.b'), throwsArgumentError);
-      expect(() => f.control('a'), throwsArgumentError);
-    });
-
-    test('invalid-type error message reads naturally', () {
-      final f = FormGroup({
-        'a': {
-          'b': FormControl<String>(null),
-        },
-      });
-
-      expect(
-        () => f.control('a.b'),
-        throwsA(
-          isA<ArgumentError>().having(
-            (e) => e.message,
-            'message',
-            contains('has invalid type'),
-          ),
-        ),
-      );
-    });
+    // The old "invalid type" tests (passing raw Map literals into FormGroup)
+    // are no longer needed — FormNode typing now catches those at compile
+    // time, which is the whole point of #20.
   });
 
   group("nested validate", () {

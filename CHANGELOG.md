@@ -15,6 +15,12 @@
   not flipped. Most consumers won't notice this; if you relied on
   `setValue` to forcibly retrigger a rebuild on an unchanged value, call
   `notifyListeners()` directly or use `markAsDirty()` / `markAsTouched()`.
+* **`FormGroup` now requires `Map<String, FormNode>`** instead of
+  `Map<String, Object>`. `FormControl`, `FormArrayControl`, and
+  `FormGroup` all implement the new `FormNode` interface, so existing
+  code that passes form nodes compiles unchanged. Code that accidentally
+  passed raw `Map`, `int`, `String`, etc. as map values will now fail at
+  compile time instead of at runtime — this is the intended improvement.
 * **`EzyFormControl` builder signature changed** from
   `(BuildContext, FormControl<T>)` to
   `(BuildContext, FormControl<T>, TextEditingController, FocusNode)`.
@@ -71,6 +77,16 @@
 * **Optional `controller` / `focusNode` parameters on `EzyFormControl`**
   let callers supply externally-owned instances for imperative access.
 
+* **`EzyFormControlWatcher<T>`** — a lightweight widget that watches a
+  single `FormControl` and rebuilds when its value changes. Use it for
+  reactive UI (e.g. conditionally showing a field when a checkbox is
+  checked) without nesting inside the controlling field's builder. Accepts
+  dotted paths for nested controls.
+* **`EzyFormWatcher<R>`** — a selector-based widget that watches the
+  entire `FormGroup` and rebuilds when any control changes. A `selector`
+  function extracts the data you care about — use Dart records for
+  type-safe multi-value watching. Also useful for derived/computed values
+  like `form.isValid`.
 * **Built-in validator library** — new validators shipped alongside the
   existing `requiredValidator` / `requiredTrueValidator`:
   - `emailValidator` — permissive email pattern check

@@ -282,10 +282,40 @@ that serializes known non-JSON types.
 ### 19. README doesn't show: nested groups, array validators, async, dynamic add/remove, or `EzyFormConsumer`
 The package has features the docs hide.
 
-### 20. Type-safety: `FormGroup` map accepts `Object`
-`FormGroup({'email': 42})` compiles and only fails on first lookup. A
-sealed `FormControlBase` (or new `FormGroupNode`) interface used as the
-map's value type would catch this at compile time.
+### 20. Type-safety: `FormGroup` map accepts `Object` — DONE in 1.0.0
+Previously `FormGroup({'email': 42})` compiled and only failed at
+runtime on first lookup. Now `FormGroup` requires `Map<String, FormNode>`
+where `FormNode` is an `abstract interface class` implemented by
+`FormControl`, `FormArrayControl`, and `FormGroup`. Invalid entries are
+caught at compile time.
+
+### 21. `FormGroupArray` — array of `FormGroup`s
+`FormArrayControl<T>` holds a flat list of scalars. Many real-world forms
+need arrays of objects — e.g. a list of addresses (each with
+street/city/zip), multiple phone numbers (type + number), or line items
+in an invoice. A `FormGroupArray` (or `FormArrayControl<FormGroup>`)
+would hold `List<FormGroup>` with `add()` / `remove(index)` /
+`removeAll()` / `reset()` / `setValue(List<Map>)` / `patchValue(List<Map>)`
+semantics matching the existing array API.
+
+### 22. Async validators
+Server-side checks (username availability, email uniqueness) need:
+
+```dart
+typedef AsyncValidatorFn<T> = Future<String?> Function(T? value);
+```
+
+…plus a `pending` state on the control and a debounce mechanism so the
+form can show a loading indicator and delay submission until validation
+completes.
+
+### 23. `disabled` / `enabled` state on `FormControl`
+Conditional fields ("shipping address same as billing") are a daily form
+requirement. Disabled controls should:
+- Be skipped by `validate()`
+- Be excluded from `FormGroup.values`
+- Expose an `enabled` / `disabled` getter
+- Notify listeners on state change so the UI can grey out the field
 
 ---
 
@@ -312,6 +342,9 @@ map's value type would catch this at compile time.
    invalidation. (#13)
 10. **`EzyFormSelector` + `EzyFormSubmitButton`** for fewer rebuilds and a
     standard submit flow. (#14, #15)
+
+11. **`FormGroupArray` — array of form groups** for complex repeated
+    sections (addresses, line items, etc.). (#21)
 
 Items #5, #16–#20 are smaller polish tasks that can land alongside any of
 the above as they touch the same files.

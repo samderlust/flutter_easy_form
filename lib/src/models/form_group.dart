@@ -10,8 +10,8 @@ import 'form_control_base.dart';
 ///
 /// A [FormGroup] can be validated and reset, and can be marked as dirty or
 /// touched.
-class FormGroup with ChangeNotifier {
-  final Map<String, Object> group;
+class FormGroup with ChangeNotifier implements FormNode {
+  final Map<String, FormNode> group;
   FormGroup(this.group);
 
   get isDirty => flatControls.any((ctrl) => ctrl.isDirty);
@@ -44,34 +44,26 @@ class FormGroup with ChangeNotifier {
     return _flattenMapValues<FormControlBase>(group);
   }
 
-  List<T> _flattenMapValues<T>(Map<String, dynamic> nestedMap) {
+  List<T> _flattenMapValues<T>(Map<String, FormNode> nestedMap) {
     List<T> flattenedValues = [];
     for (var value in nestedMap.values) {
       // Check `is T` first so that when T is FormGroup we collect the
       // nested group itself (flatGroups) rather than descending into it.
       if (value is T) {
-        flattenedValues.add(value);
+        flattenedValues.add(value as T);
       } else if (value is FormGroup) {
         flattenedValues.addAll(_flattenMapValues(value.group));
-      } else if (value is Map<String, dynamic>) {
-        flattenedValues.addAll(_flattenMapValues(value));
       }
     }
     return flattenedValues;
   }
 
-  T _travelNested<T>(Map<String, dynamic> map, List<String> kList) {
+  T _travelNested<T>(Map<String, FormNode> map, List<String> kList) {
     var curMap = map;
     for (var i = 0; i < kList.length; i++) {
       var val = curMap[kList[i]];
       if (val == null) {
         throw ArgumentError('Control ${kList.join('.')} not found');
-      }
-      if (val is Map<String, dynamic> &&
-          val is! FormGroup &&
-          val is! FormArrayControl &&
-          val is! FormControl) {
-        throw ArgumentError('Control ${kList.join('.')} has invalid type');
       }
 
       if (val is FormGroup) {
@@ -80,7 +72,7 @@ class FormGroup with ChangeNotifier {
 
       if (i == kList.length - 1) {
         if (val is T) {
-          return val;
+          return val as T;
         } else {
           throw ArgumentError('Control ${kList.join('.')} not found');
         }

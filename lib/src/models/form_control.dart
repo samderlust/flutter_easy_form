@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../validators.dart';
 import 'form_control_base.dart';
+import 'form_node.dart';
 
 /// A [FormControl] represents a form control.
 ///
@@ -12,7 +13,7 @@ import 'form_control_base.dart';
 ///
 /// The [FormControl] notifies its listeners when its value, dirty or touched
 /// status changes.
-class FormControl<T> with ChangeNotifier implements FormControlBase {
+class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// The current value of the form control.
   T? _value;
 
