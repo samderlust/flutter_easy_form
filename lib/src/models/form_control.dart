@@ -35,7 +35,7 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// Optional callback that converts the control's value to a
   /// JSON-compatible type (e.g. `DateTime` → `String`).
   ///
-  /// Used by [FormGroup.toJsonMap]. When `null`, the raw [value] is used.
+  /// Used by [FormGroup.toJson]. When `null`, the raw [value] is used.
   final Object? Function(T? value)? _toJson;
 
   /// Optional callback that converts a JSON-compatible value back to
@@ -62,7 +62,7 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// [dirty] Whether the form control has been modified by the user.
   /// [touched] Whether the form control has been touched by the user.
   /// [validators] The list of validators to validate the value of the form control.
-  /// [toJson] Optional serializer for [FormGroup.toJsonMap].
+  /// [toJson] Optional serializer for [FormGroup.toJson].
   /// [fromJson] Optional deserializer for [FormGroup.patchValue] / [setValue].
   FormControl(
     T? value, {

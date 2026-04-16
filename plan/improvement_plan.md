@@ -277,7 +277,7 @@ power the `patchValue` from #3.
 
 ### 18. `FormControl<DateTime>` won't survive `jsonEncode(form.values)` — DONE in 1.0.0
 Added opt-in `toJson` / `fromJson` callbacks on `FormControl` and
-`FormArrayControl`. `FormGroup.toJsonMap()` walks the tree calling each
+`FormArrayControl`. `FormGroup.toJson()` walks the tree calling each
 control's `toJson`. `patchValue` / `setValue` automatically apply
 `fromJson` when loading raw JSON maps. Controls without callbacks
 behave exactly as before.

@@ -89,7 +89,7 @@
   like `form.isValid`.
 * **`toJson` / `fromJson` on `FormControl` and `FormArrayControl`** —
   opt-in callbacks for JSON serialization of non-primitive types (e.g.
-  `DateTime`, `Color`). `FormGroup.toJsonMap()` walks the tree and
+  `DateTime`, `Color`). `FormGroup.toJson()` walks the tree and
   applies each control's `toJson` (falling back to the raw value).
   `patchValue` / `setValue` automatically run `fromJson` when loading
   raw JSON maps, so `DateTime` strings from an API are parsed into real

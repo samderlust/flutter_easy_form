@@ -321,7 +321,7 @@ final form = FormGroup({
 });
 
 // Serialize — DateTime becomes an ISO string
-final json = form.toJsonMap();  // {'name': null, 'birthDate': '1990-01-15T00:00:00.000'}
+final json = form.toJson();  // {'name': null, 'birthDate': '1990-01-15T00:00:00.000'}
 jsonEncode(json);               // works!
 
 // Deserialize — ISO string becomes a DateTime

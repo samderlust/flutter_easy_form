@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ezy_form/ezy_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -59,6 +61,13 @@ final form = FormGroup({
       minValue(18),
       maxValue(120),
     ],
+  ),
+
+  // DateTime field with toJson/fromJson — survives jsonEncode/jsonDecode.
+  'birthDate': FormControl<DateTime>(
+    DateTime(1990, 1, 15),
+    toJson: (v) => v?.toIso8601String(),
+    fromJson: (v) => v != null ? DateTime.tryParse(v.toString()) : null,
   ),
 
   // Dropdown.
@@ -218,7 +227,31 @@ class _TopLevelSection extends StatelessWidget {
             ),
           ),
         ),
-        // Pattern 3: Dropdown — ignore controller/focusNode.
+        // Pattern 3: DateTime — uses toJson/fromJson for JSON serialization.
+        // The date picker writes a real DateTime into the control; toJson()
+        // converts it to an ISO string for the API.
+        EzyFormControl<DateTime>(
+          formControlName: 'birthDate',
+          builder: (context, control, _, __) => ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              control.value != null
+                  ? 'Birth date: ${control.value!.year}-${control.value!.month.toString().padLeft(2, '0')}-${control.value!.day.toString().padLeft(2, '0')}'
+                  : 'Birth date: not set',
+            ),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: control.value ?? DateTime(2000),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) control.setValue(picked);
+            },
+          ),
+        ),
+        // Pattern 4: Dropdown — ignore controller/focusNode.
         EzyFormControl<String>(
           formControlName: 'gender',
           builder: (context, control, _, __) => DropdownButtonFormField<String>(
@@ -398,6 +431,7 @@ const _serverResponse = <String, dynamic>{
   'name': 'Loaded Name',
   'email': 'loaded@example.com',
   'age': 42,
+  'birthDate': '1985-06-15T00:00:00.000', // ISO string → DateTime via fromJson
   'gender': 'other',
   'agreed': true,
   'tags': ['flutter', 'dart', 'mobile'],
@@ -432,8 +466,20 @@ class _ActionsSection extends StatelessWidget {
                 icon: const Icon(Icons.send),
                 label: const Text('Submit (validate)'),
               ),
+              FilledButton.icon(
+                onPressed: () {
+                  // toJson() converts DateTime → ISO string etc.
+                  final json = form.toJson();
+                  final encoded = jsonEncode(json);
+                  debugPrint('toJson: $encoded');
+                },
+                icon: const Icon(Icons.data_object),
+                label: const Text('toJson'),
+              ),
               OutlinedButton.icon(
                 onPressed: () {
+                  // patchValue with raw JSON — fromJson parses strings
+                  // back into DateTime automatically.
                   form.patchValue(_serverResponse);
                   debugPrint('after patchValue: ${form.values}');
                 },
@@ -489,6 +535,9 @@ class _LiveStatePanel extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text('values:'),
                   Text(form.values.toString()),
+                  const SizedBox(height: 8),
+                  const Text('toJson (JSON-safe):'),
+                  Text(form.toJson().toString()),
                 ],
               ),
             ),

@@ -112,13 +112,13 @@ class FormGroup with ChangeNotifier implements FormNode {
   ///
   /// Use this instead of [values] when you need to feed the result
   /// into `jsonEncode`.
-  Map<String, dynamic> toJsonMap() {
+  Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     for (var key in group.keys) {
       final v = group[key];
 
       if (v is FormGroup) {
-        map[key] = v.toJsonMap();
+        map[key] = v.toJson();
       } else if (v is FormControl) {
         map[key] = v.jsonValue;
       } else if (v is FormArrayControl) {

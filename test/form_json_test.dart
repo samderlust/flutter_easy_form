@@ -30,9 +30,9 @@ void main() {
           ),
         });
 
-    test('toJsonMap converts non-primitive types via toJson callbacks', () {
+    test('toJson converts non-primitive types via toJson callbacks', () {
       final f = buildForm();
-      final json = f.toJsonMap();
+      final json = f.toJson();
 
       expect(json['name'], 'Sam');
       expect(json['score'], 9.5);
@@ -44,9 +44,9 @@ void main() {
       ]);
     });
 
-    test('toJsonMap result survives jsonEncode', () {
+    test('toJson result survives jsonEncode', () {
       final f = buildForm();
-      final jsonStr = jsonEncode(f.toJsonMap());
+      final jsonStr = jsonEncode(f.toJson());
       final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
 
       expect(decoded['name'], 'Sam');
@@ -54,13 +54,13 @@ void main() {
       expect(decoded['score'], 9.5);
     });
 
-    test('toJsonMap falls back to raw value when toJson is null', () {
+    test('toJson falls back to raw value when toJson is null', () {
       final f = FormGroup({
         'age': FormControl<int>(25),
         'active': FormControl<bool>(true),
       });
 
-      final json = f.toJsonMap();
+      final json = f.toJson();
       expect(json['age'], 25);
       expect(json['active'], true);
       expect(jsonEncode(json), '{"age":25,"active":true}');
@@ -133,11 +133,11 @@ void main() {
       expect(f.control<int>('count').value, 42);
     });
 
-    test('round-trip: toJsonMap → jsonEncode → jsonDecode → patchValue', () {
+    test('round-trip: toJson → jsonEncode → jsonDecode → patchValue', () {
       final f = buildForm();
 
       // Serialize
-      final jsonStr = jsonEncode(f.toJsonMap());
+      final jsonStr = jsonEncode(f.toJson());
 
       // Create a fresh form and deserialize
       final f2 = buildForm();
@@ -156,7 +156,7 @@ void main() {
       ]);
     });
 
-    test('toJsonMap handles null values and null arrays', () {
+    test('toJson handles null values and null arrays', () {
       final f = FormGroup({
         'date': FormControl<DateTime>(
           null,
@@ -170,7 +170,7 @@ void main() {
         ),
       });
 
-      final json = f.toJsonMap();
+      final json = f.toJson();
       expect(json['date'], isNull);
       expect(json['items'], isNull);
       expect(jsonEncode(json), '{"date":null,"items":null}');
@@ -186,7 +186,7 @@ void main() {
       });
 
       f.arrayControl<DateTime>('dates').add(DateTime(2025, 3, 15));
-      final json = f.toJsonMap();
+      final json = f.toJson();
       expect(json['dates'], ['2025-03-15T00:00:00.000']);
     });
   });
