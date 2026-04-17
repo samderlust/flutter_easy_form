@@ -77,6 +77,14 @@
 * **Optional `controller` / `focusNode` parameters on `EzyFormControl`**
   let callers supply externally-owned instances for imperative access.
 
+* **Async validators** — `FormControl` now accepts `asyncValidators`,
+  a list of `AsyncValidatorFn<T>` (`Future<String?> Function(T? value)`).
+  Call `control.validateAsync()` or `form.validateAsync()` to run sync
+  validators first, then async validators (in parallel across controls).
+  While running, `control.pending` is `true` so the UI can show a
+  spinner. Stale results are discarded when the value changes mid-flight.
+  `FormGroup.isPending` aggregates across all controls.
+
 * **`EzyFormControlWatcher<T>`** — a lightweight widget that watches a
   single `FormControl` and rebuilds when its value changes. Use it for
   reactive UI (e.g. conditionally showing a field when a checkbox is

@@ -32,6 +32,22 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// The list of validators to validate the value of the form control.
   List<ValidatorFn<T>> validators;
 
+  /// Asynchronous validators run after all synchronous [validators] pass.
+  ///
+  /// Use these for server-side checks (e.g. email uniqueness). While
+  /// running, [pending] is `true` and listeners are notified so the UI
+  /// can show a loading indicator.
+  List<AsyncValidatorFn<T>> asyncValidators;
+
+  /// `true` while asynchronous validators are running.
+  bool _pending = false;
+
+  /// Whether async validators are currently running.
+  bool get pending => _pending;
+
+  /// Whether this control has any async validators configured.
+  bool get hasAsyncValidators => asyncValidators.isNotEmpty;
+
   /// The callback to be executed when the form control is reset.
   VoidCallback? _onReset;
 
@@ -41,12 +57,14 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// captured and restored by [reset].
   /// [dirty] Whether the form control has been modified by the user.
   /// [touched] Whether the form control has been touched by the user.
-  /// [validators] The list of validators to validate the value of the form control.
+  /// [validators] Synchronous validators for the control.
+  /// [asyncValidators] Asynchronous validators, run after sync validators pass.
   FormControl(
     T? value, {
     this.dirty = false,
     this.touched = false,
     this.validators = const [],
+    this.asyncValidators = const [],
   })  : _value = value,
         _initialValue = value;
 
@@ -88,6 +106,42 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
     notifyListeners();
   }
 
+  /// Validates the control: runs synchronous validators first, then
+  /// asynchronous validators (if sync passes and [asyncValidators] is
+  /// non-empty).
+  ///
+  /// While async validators are running, [pending] is `true`. If the
+  /// value changes while async validation is in flight, the stale result
+  /// is discarded.
+  Future<void> validateAsync() async {
+    // Run sync validators first.
+    validate();
+    if (error != null || asyncValidators.isEmpty) return;
+
+    // Snapshot the value so we can detect stale results.
+    final snapshot = _value;
+
+    _pending = true;
+    notifyListeners();
+
+    for (final asyncValidator in asyncValidators) {
+      final e = await asyncValidator(_value);
+      // Value changed while we were awaiting — discard result.
+      if (_value != snapshot) {
+        _pending = false;
+        notifyListeners();
+        return;
+      }
+      if (e != null) {
+        error = e;
+        break;
+      }
+    }
+
+    _pending = false;
+    notifyListeners();
+  }
+
   /// Resets the form control back to the value supplied to the
   /// constructor, and clears `dirty` / `touched` / `error`.
   ///
@@ -99,6 +153,7 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
     dirty = false;
     touched = false;
     error = null;
+    _pending = false;
     _onReset?.call();
     notifyListeners();
   }
@@ -114,6 +169,7 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
     dirty = false;
     touched = false;
     error = null;
+    _pending = false;
     _onReset?.call();
     notifyListeners();
   }

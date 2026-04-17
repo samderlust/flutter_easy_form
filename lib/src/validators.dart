@@ -2,6 +2,13 @@ import 'models/form_control.dart';
 
 typedef ValidatorFn<T> = String? Function(T? value);
 
+/// Signature for **asynchronous** validators on a [FormControl].
+///
+/// Return a `Future` that resolves to an error message (validation failed)
+/// or `null` (validation passed). Use these for server-side checks like
+/// username availability or email uniqueness.
+typedef AsyncValidatorFn<T> = Future<String?> Function(T? value);
+
 /// Signature for validators applied to a [FormArrayControl] as a whole.
 ///
 /// The validator receives the array's aggregated values (which may include

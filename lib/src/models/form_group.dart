@@ -200,6 +200,40 @@ class FormGroup with ChangeNotifier implements FormNode {
     return isValid;
   }
 
+  /// Whether any control in the group has async validators running.
+  bool get isPending => flatControls.any(
+        (ctrl) => ctrl is FormControl && ctrl.pending,
+      );
+
+  /// Validates all controls including async validators.
+  ///
+  /// Runs synchronous validators first on every control. If all sync
+  /// validators pass, runs async validators on controls that have them
+  /// (in parallel). Returns `true` if the entire form is valid after
+  /// both sync and async validation complete.
+  Future<bool> validateAsync() async {
+    // Sync first.
+    for (var ctrl in flatControls) {
+      ctrl.validate();
+    }
+    notifyListeners();
+
+    // Collect async validation futures for controls that passed sync.
+    final futures = <Future<void>>[];
+    for (var ctrl in flatControls) {
+      if (ctrl is FormControl && ctrl.valid && ctrl.hasAsyncValidators) {
+        futures.add(ctrl.validateAsync());
+      }
+    }
+
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+      notifyListeners();
+    }
+
+    return isValid;
+  }
+
   /// Resets every descendant control back to its initial value.
   ///
   /// See [clear] for the "wipe to empty" variant.

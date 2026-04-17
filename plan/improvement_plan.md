@@ -200,14 +200,13 @@ Map<String, Object>? errors;   // {'required': true, 'minLength': 3}
 String? get firstError;        // convenience
 ```
 
-### 8. No async validators
-Server-side checks (username availability, email uniqueness) need:
-
-```dart
-typedef AsyncValidatorFn<T> = Future<String?> Function(T? value);
-```
-
-…plus a `pending` state on the control and a debounce mechanism.
+### 8. No async validators — DONE in 1.0.0
+Added `AsyncValidatorFn<T>` typedef and `asyncValidators` list on
+`FormControl`. `validateAsync()` runs sync first, then async validators.
+`pending` state on the control lets the UI show spinners. Stale results
+are discarded when the value changes mid-flight. `FormGroup.validateAsync()`
+runs all controls' async validators in parallel.
+`FormGroup.isPending` aggregates across all controls.
 
 ### 9. No `disabled` state on `FormControl`
 Conditional fields ("shipping address same as billing") are a daily form

@@ -260,12 +260,48 @@ ValidatorFn<String> noSpaces = (value) {
 };
 ```
 
+### Async validators
+
+For server-side checks (email uniqueness, username availability), use `asyncValidators`. They run after sync validators pass:
+
+```dart
+'email': FormControl<String>(null,
+  validators: [requiredValidator, emailValidator],
+  asyncValidators: [
+    (value) async {
+      final taken = await api.isEmailTaken(value);
+      return taken ? 'email already taken' : null;
+    },
+  ],
+),
+```
+
+Use `validateAsync()` instead of `validate()` to include async validators:
+
+```dart
+final isValid = await form.validateAsync();
+```
+
+While async validators run, `control.pending` is `true` — use it to show a spinner:
+
+```dart
+builder: (context, control, controller, focusNode) => TextField(
+  controller: controller,
+  suffixIcon: control.pending ? CircularProgressIndicator() : null,
+  decoration: InputDecoration(
+    errorText: control.valid ? null : control.error,
+    helperText: control.pending ? 'checking...' : null,
+  ),
+)
+```
+
 ## Form operations
 
 ### Validate
 
 ```dart
-final isValid = form.validate();  // runs all validators, returns bool
+final isValid = form.validate();       // sync only
+final isValid = await form.validateAsync(); // sync + async
 ```
 
 ### Reset (restore initial values)

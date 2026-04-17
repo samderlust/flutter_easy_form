@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'user_profile.dart';
+import 'user_profile_repository.dart';
 
 void main() => runApp(const MyApp());
+
+final repo = UserProfileRepository();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -23,24 +26,7 @@ class MyApp extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Simulates a server response — in a real app, the repository layer would
-// parse JSON into UserProfile and then you'd patch the form with typed values.
-// ---------------------------------------------------------------------------
-UserProfile get _serverProfile => UserProfile(
-      name: 'Loaded Name',
-      email: 'loaded@example.com',
-      age: 42,
-      birthDate: DateTime(1985, 6, 15),
-      gender: 'other',
-      agreed: true,
-      tags: ['flutter', 'dart', 'mobile'],
-      firstName: 'Loaded',
-      lastName: 'Server',
-    );
-
-// ---------------------------------------------------------------------------
-// Custom array-level validator demonstrating `arrayValidators` (added in
-// 0.0.2). It receives the aggregated values list and runs once per array.
+// Custom array-level validator.
 // ---------------------------------------------------------------------------
 String? minTwoTags(List<String?>? values) {
   if (values == null || values.length < 2) return 'Add at least 2 tags';
@@ -48,12 +34,9 @@ String? minTwoTags(List<String?>? values) {
 }
 
 // ---------------------------------------------------------------------------
-// The form definition. Demonstrates:
-//   * FormGroup at the top
-//   * Nested FormGroup (`info`)
-//   * FormControl<String> / <bool> / <int> / <DateTime> with initial values
-//   * FormArrayControl with BOTH per-item validators AND arrayValidators
-//   * requiredValidator / requiredTrueValidator
+// Form definition.
+// The email field uses an async validator that checks the repo for
+// availability — demonstrating async validation with a simulated API call.
 // ---------------------------------------------------------------------------
 final form = FormGroup({
   'name': FormControl<String>('Sam', validators: [
@@ -63,6 +46,8 @@ final form = FormGroup({
   'email': FormControl<String>(null, validators: [
     requiredValidator,
     emailValidator,
+  ], asyncValidators: [
+    repo.checkEmailAvailability,
   ]),
   'age': FormControl<int>(
     25,
@@ -119,7 +104,7 @@ class DynamicFormExample extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Nested FormGroup section: `info.firstName`, `info.lastName`.
+// Nested FormGroup section.
 // ---------------------------------------------------------------------------
 class _ProfileSection extends StatelessWidget {
   const _ProfileSection();
@@ -156,7 +141,9 @@ class _ProfileSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level controls: text + typed text + date picker + dropdown.
+// Top-level controls.
+// The email field shows pending state while async validation runs.
+// Try typing "taken@email.com" to see the async error.
 // ---------------------------------------------------------------------------
 class _TopLevelSection extends StatelessWidget {
   const _TopLevelSection();
@@ -167,7 +154,6 @@ class _TopLevelSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionHeader('Top-level controls'),
-        // Pattern 1: String text field — controller auto-syncs.
         EzyFormControl<String>(
           formControlName: 'name',
           builder: (context, control, controller, focusNode) =>
@@ -178,17 +164,35 @@ class _TopLevelSection extends StatelessWidget {
             focusNode: focusNode,
           ),
         ),
+        // Email with async validator — shows a spinner while checking.
         EzyFormControl<String>(
           formControlName: 'email',
-          builder: (context, control, controller, focusNode) =>
-              _styledTextField(
-            label: 'Email',
-            control: control,
+          builder: (context, control, controller, focusNode) => TextField(
             controller: controller,
             focusNode: focusNode,
+            decoration: InputDecoration(
+              labelText: 'Email (try "taken@email.com")',
+              errorText: control.valid ? null : control.error,
+              suffixIcon: control.pending
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+              helperText: control.pending
+                  ? 'checking availability...'
+                  : control.isDirty
+                      ? 'dirty'
+                      : control.isTouched
+                          ? 'touched'
+                          : null,
+            ),
           ),
         ),
-        // Pattern 2: Typed text field — provide parse + format.
         EzyFormControl<int>(
           formControlName: 'age',
           parse: int.tryParse,
@@ -209,7 +213,6 @@ class _TopLevelSection extends StatelessWidget {
             ),
           ),
         ),
-        // Pattern 3: DateTime — date picker, ignores controller/focusNode.
         EzyFormControl<DateTime>(
           formControlName: 'birthDate',
           builder: (context, control, _, __) => ListTile(
@@ -231,7 +234,6 @@ class _TopLevelSection extends StatelessWidget {
             },
           ),
         ),
-        // Pattern 4: Dropdown — ignore controller/focusNode.
         EzyFormControl<String>(
           formControlName: 'gender',
           builder: (context, control, _, __) => DropdownButtonFormField<String>(
@@ -368,7 +370,7 @@ class _AgreedSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// EzyFormWatcher demo: watches multiple controls via a selector function.
+// EzyFormWatcher demo.
 // ---------------------------------------------------------------------------
 class _GreetingBanner extends StatelessWidget {
   const _GreetingBanner();
@@ -400,14 +402,29 @@ class _GreetingBanner extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Actions row via `EzyFormConsumer`.
-// Demonstrates:
-//   * Submit → convert form.values to a UserProfile model
-//   * Load from server → repo gives us a UserProfile, we patch it in
-//   * Reset / Clear
+// Actions row.
+// Submit uses validateAsync() to run both sync and async validators,
+// then converts to a model and calls the repo.
+// Load from server uses the repo to fetch a model, then patches the form.
 // ---------------------------------------------------------------------------
-class _ActionsSection extends StatelessWidget {
+class _ActionsSection extends StatefulWidget {
   const _ActionsSection();
+
+  @override
+  State<_ActionsSection> createState() => _ActionsSectionState();
+}
+
+class _ActionsSectionState extends State<_ActionsSection> {
+  bool _loading = false;
+
+  Future<void> _runAsync(Future<void> Function() action) async {
+    setState(() => _loading = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -415,49 +432,61 @@ class _ActionsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionHeader('Actions (EzyFormConsumer)'),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: LinearProgressIndicator(),
+          ),
         EzyFormConsumer(
           builder: (context, form) => Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               FilledButton.icon(
-                onPressed: () {
-                  final ok = form.validate();
-                  if (ok) {
-                    // form.values → typed model → send to API
-                    final profile = UserProfile.fromMap(form.values);
-                    debugPrint('submit: $profile');
-                  } else {
-                    debugPrint('form is invalid');
-                  }
-                },
+                onPressed: _loading
+                    ? null
+                    : () => _runAsync(() async {
+                          final ok = await form.validateAsync();
+                          if (ok) {
+                            final profile =
+                                UserProfile.fromMap(form.values);
+                            await repo.saveProfile(profile);
+                            debugPrint('saved: $profile');
+                          } else {
+                            debugPrint('form is invalid');
+                          }
+                        }),
                 icon: const Icon(Icons.send),
                 label: const Text('Submit'),
               ),
               OutlinedButton.icon(
-                onPressed: () {
-                  // In a real app: repo fetches JSON → parses to model.
-                  // Then model.toMap() patches the form with typed values.
-                  final profile = _serverProfile;
-                  form.patchValue(profile.toMap());
-                  debugPrint('loaded from server: $profile');
-                },
+                onPressed: _loading
+                    ? null
+                    : () => _runAsync(() async {
+                          final profile = await repo.fetchProfile();
+                          form.patchValue(profile.toMap());
+                          debugPrint('loaded: $profile');
+                        }),
                 icon: const Icon(Icons.cloud_download),
                 label: const Text('Load from server'),
               ),
               OutlinedButton.icon(
-                onPressed: () {
-                  form.reset();
-                  debugPrint('after reset: ${form.values}');
-                },
+                onPressed: _loading
+                    ? null
+                    : () {
+                        form.reset();
+                        debugPrint('after reset: ${form.values}');
+                      },
                 icon: const Icon(Icons.restart_alt),
                 label: const Text('Reset to initial'),
               ),
               OutlinedButton.icon(
-                onPressed: () {
-                  form.clear();
-                  debugPrint('after clear: ${form.values}');
-                },
+                onPressed: _loading
+                    ? null
+                    : () {
+                        form.clear();
+                        debugPrint('after clear: ${form.values}');
+                      },
                 icon: const Icon(Icons.cleaning_services),
                 label: const Text('Clear all'),
               ),
@@ -470,7 +499,7 @@ class _ActionsSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Live state panel via `EzyFormConsumer`.
+// Live state panel.
 // ---------------------------------------------------------------------------
 class _LiveStatePanel extends StatelessWidget {
   const _LiveStatePanel();
@@ -491,6 +520,7 @@ class _LiveStatePanel extends StatelessWidget {
                   Text('isValid:   ${form.isValid}'),
                   Text('isDirty:   ${form.isDirty}'),
                   Text('isTouched: ${form.isTouched}'),
+                  Text('isPending: ${form.isPending}'),
                   const SizedBox(height: 8),
                   const Text('values:'),
                   Text(form.values.toString()),
