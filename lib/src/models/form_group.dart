@@ -82,6 +82,57 @@ class FormGroup with ChangeNotifier implements FormNode {
     throw ArgumentError('Control ${kList.join('.')} not found');
   }
 
+  /// Adds a control to this group at runtime.
+  ///
+  /// Throws [ArgumentError] if [name] already exists. Use dot-separated
+  /// paths to add into nested groups (e.g. `'info.phone'`).
+  void addControl(String name, FormNode control) {
+    final parts = name.split('.');
+    if (parts.length > 1) {
+      final groupName = parts.sublist(0, parts.length - 1).join('.');
+      final leafName = parts.last;
+      groupControl(groupName).addControl(leafName, control);
+      notifyListeners();
+      return;
+    }
+    if (group.containsKey(name)) {
+      throw ArgumentError(
+        'FormGroup already contains a control named "$name". '
+        'Remove it first with removeControl().',
+      );
+    }
+    group[name] = control;
+    notifyListeners();
+  }
+
+  /// Removes a control from this group at runtime.
+  ///
+  /// Returns the removed [FormNode], or `null` if [name] was not found.
+  /// Use dot-separated paths to remove from nested groups.
+  FormNode? removeControl(String name) {
+    final parts = name.split('.');
+    if (parts.length > 1) {
+      final groupName = parts.sublist(0, parts.length - 1).join('.');
+      final leafName = parts.last;
+      final removed = groupControl(groupName).removeControl(leafName);
+      notifyListeners();
+      return removed;
+    }
+    final removed = group.remove(name);
+    if (removed != null) notifyListeners();
+    return removed;
+  }
+
+  /// Whether this group contains a control with the given [name].
+  bool containsControl(String name) {
+    try {
+      _travelNested<FormNode>(group, name.split('.'));
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
   /// Get Map values of the form group.
   Map<String, dynamic> get values {
     final map = <String, dynamic>{};
@@ -253,15 +304,6 @@ class FormGroup with ChangeNotifier implements FormNode {
     }
     notifyListeners();
   }
-
-  // void setArrayItem(String key, int index, dynamic value) {
-  //   final ctrl = arrayControl(key).controls;
-  //   if (ctrl == null) {
-  //     return;
-  //   }
-  //   ctrl[index].setValue(value);
-  //   notifyListeners();
-  // }
 
   @override
   String toString() => 'FormGroup(group: $group)';

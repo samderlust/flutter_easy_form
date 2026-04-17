@@ -88,6 +88,8 @@ class DynamicFormExample extends StatelessWidget {
               SizedBox(height: 16),
               _TagsSection(),
               SizedBox(height: 16),
+              _DynamicFieldsSection(),
+              SizedBox(height: 16),
               _AgreedSection(),
               SizedBox(height: 16),
               _GreetingBanner(),
@@ -311,6 +313,78 @@ class _TagsSection extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic fields — demonstrates addControl / removeControl.
+// Users can add optional fields (phone, website) at runtime.
+// ---------------------------------------------------------------------------
+class _DynamicFieldsSection extends StatelessWidget {
+  const _DynamicFieldsSection();
+
+  static const _optionalFields = {
+    'phone': 'Phone number',
+    'website': 'Website URL',
+    'company': 'Company name',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return EzyFormConsumer(
+      builder: (context, form) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader('Dynamic fields (addControl / removeControl)'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _optionalFields.entries.map((entry) {
+              final exists = form.containsControl(entry.key);
+              return FilterChip(
+                label: Text(entry.value),
+                selected: exists,
+                onSelected: (selected) {
+                  if (selected) {
+                    form.addControl(
+                      entry.key,
+                      FormControl<String>(null, validators: [requiredValidator]),
+                    );
+                  } else {
+                    form.removeControl(entry.key);
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          // Render text fields for each active dynamic control.
+          ..._optionalFields.entries
+              .where((e) => form.containsControl(e.key))
+              .map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: EzyFormControl<String>(
+                    formControlName: entry.key,
+                    builder: (context, control, controller, focusNode) =>
+                        TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        labelText: entry.value,
+                        errorText: control.valid ? null : control.error,
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => form.removeControl(entry.key),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
         ],
       ),
     );

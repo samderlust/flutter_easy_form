@@ -251,11 +251,18 @@ compose([v1, v2, ...])    // AND — first error wins
 composeOr([v1, v2, ...])  // OR  — null if any passes
 ```
 
-**Custom validators** follow the same `String? Function(T? value)` contract — return an error message or `null`:
+**Custom validators** follow the same `String? Function(T? value)` contract — return an error message or `null`. Use them to customize error messages for localization or app-specific rules:
 
 ```dart
+// Custom rule
 ValidatorFn<String> noSpaces = (value) {
   if (value != null && value.contains(' ')) return 'no spaces allowed';
+  return null;
+};
+
+// Localized — replace built-in validators with your own messages
+ValidatorFn<String> pflichtfeld = (value) {
+  if (value == null || value.isEmpty) return 'Pflichtfeld';
   return null;
 };
 ```
@@ -366,6 +373,24 @@ form.isDirty    // true if any control has been edited
 form.isTouched  // true if any control has been focused
 ```
 
+### Dynamic controls
+
+Add or remove controls at runtime for stepwise / wizard / dynamic forms:
+
+```dart
+// Add a new field
+form.addControl('phone', FormControl<String>(null, validators: [requiredValidator]));
+
+// Add into a nested group
+form.addControl('info.middleName', FormControl<String>(null));
+
+// Remove a field
+form.removeControl('phone');
+
+// Check existence
+if (form.containsControl('phone')) { ... }
+```
+
 ### Array operations
 
 ```dart
@@ -382,6 +407,6 @@ arrayControl.patchValue([...]); // resize + update, no dirty
 
 - **`FormControl<T>`** — single typed value, validators, dirty/touched/error state.
 - **`FormArrayControl<T>`** — list of `FormControl<T>`. Per-item validators propagated to children. Array-level `arrayValidators` run against the aggregated list.
-- **`FormGroup`** — `Map<String, Object>` of controls. Root aggregator for `isValid`, `isDirty`, `isTouched`, `validate()`, `reset()`, `clear()`.
+- **`FormGroup`** — `Map<String, FormNode>` of controls. Root aggregator for `isValid`, `isDirty`, `isTouched`, `validate()`, `reset()`, `clear()`. Supports dynamic `addControl()` / `removeControl()`.
 
 All three are `ChangeNotifier` subclasses. The widget layer (`EzyFormWidget`, `EzyFormControl`, `EzyFormArrayControl`, `EzyFormConsumer`) uses `InheritedNotifier` so only the subtree that depends on a specific notifier rebuilds.

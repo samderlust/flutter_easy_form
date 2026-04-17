@@ -235,4 +235,156 @@ void main() {
       expect(f.isTouched, false);
     });
   });
+
+  group('addControl / removeControl', () {
+    test('addControl adds a new control to the group', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      f.addControl('email', FormControl<String>(null));
+
+      expect(f.control<String>('email').value, isNull);
+      expect(f.values.keys, containsAll(['name', 'email']));
+    });
+
+    test('addControl throws when name already exists', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      expect(
+        () => f.addControl('name', FormControl<String>('other')),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('addControl supports dot-separated paths for nested groups', () {
+      final f = FormGroup({
+        'info': FormGroup({
+          'firstName': FormControl<String>('Sam'),
+        }),
+      });
+
+      f.addControl('info.lastName', FormControl<String>('D'));
+
+      expect(f.control<String>('info.lastName').value, 'D');
+    });
+
+    test('removeControl removes and returns the control', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+        'email': FormControl<String>('sam@test.com'),
+      });
+
+      final removed = f.removeControl('email');
+
+      expect(removed, isA<FormControl<String>>());
+      expect(f.values.keys, ['name']);
+      expect(() => f.control<String>('email'), throwsArgumentError);
+    });
+
+    test('removeControl returns null for non-existent key', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      final removed = f.removeControl('nonexistent');
+      expect(removed, isNull);
+    });
+
+    test('removeControl supports dot-separated paths', () {
+      final f = FormGroup({
+        'info': FormGroup({
+          'firstName': FormControl<String>('Sam'),
+          'lastName': FormControl<String>('D'),
+        }),
+      });
+
+      f.removeControl('info.lastName');
+
+      expect(() => f.control<String>('info.lastName'), throwsArgumentError);
+      expect(f.control<String>('info.firstName').value, 'Sam');
+    });
+
+    test('containsControl returns true for existing controls', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+        'info': FormGroup({
+          'age': FormControl<int>(25),
+        }),
+      });
+
+      expect(f.containsControl('name'), true);
+      expect(f.containsControl('info.age'), true);
+      expect(f.containsControl('nonexistent'), false);
+      expect(f.containsControl('info.nonexistent'), false);
+    });
+
+    test('addControl can add a nested FormGroup', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      f.addControl(
+        'address',
+        FormGroup({
+          'street': FormControl<String>('123 Main'),
+          'city': FormControl<String>('NYC'),
+        }),
+      );
+
+      expect(f.control<String>('address.street').value, '123 Main');
+      expect(f.control<String>('address.city').value, 'NYC');
+    });
+
+    test('addControl can add a FormArrayControl', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      f.addControl('tags', FormArrayControl<String>(null));
+
+      expect(f.arrayControl<String>('tags').values, isNull);
+      f.arrayControl<String>('tags').add('flutter');
+      expect(f.arrayControl<String>('tags').values, ['flutter']);
+    });
+
+    test('removed controls are excluded from validate and values', () {
+      final f = FormGroup({
+        'name': FormControl<String>(null, validators: [requiredValidator]),
+        'optional': FormControl<String>(null, validators: [requiredValidator]),
+      });
+
+      f.removeControl('optional');
+      final valid = f.validate();
+
+      expect(valid, false); // only 'name' is invalid
+      expect(f.values.keys, ['name']);
+    });
+
+    test('addControl notifies listeners', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      var notified = false;
+      f.addListener(() => notified = true);
+
+      f.addControl('email', FormControl<String>(null));
+      expect(notified, true);
+    });
+
+    test('removeControl notifies listeners', () {
+      final f = FormGroup({
+        'name': FormControl<String>('Sam'),
+      });
+
+      var notified = false;
+      f.addListener(() => notified = true);
+
+      f.removeControl('name');
+      expect(notified, true);
+    });
+  });
 }

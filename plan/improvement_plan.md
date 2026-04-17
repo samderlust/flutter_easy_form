@@ -213,9 +213,11 @@ Conditional fields ("shipping address same as billing") are a daily form
 requirement. Disabled controls should be skipped by `validate()` and
 excluded from `FormGroup.values`.
 
-### 10. `FormGroup` can't add/remove controls dynamically
-No `addControl(name, control)` / `removeControl(name)`. Required for
-stepwise / wizard / dynamic forms.
+### 10. `FormGroup` can't add/remove controls dynamically — DONE in 1.0.0
+Added `addControl(name, control)`, `removeControl(name)`, and
+`containsControl(name)`. All support dot-separated paths for nested
+groups. `addControl` throws on duplicate keys. `removeControl` returns
+the removed node (or `null`). Both notify listeners.
 
 ### 11. `FormArrayControl` is missing standard list ops
 (`clear()` and `removeAll()` shipped in 1.0.0 — see #1.)
@@ -225,14 +227,13 @@ stepwise / wizard / dynamic forms.
 - An `add` overload that accepts a fully-built `FormControl<T>` so users
   can attach custom validators to a single item.
 
-### 12. Validators return raw English strings (`'required'`)
-Hard to localize. Either accept a message function:
-
-```dart
-requiredValidator(message: (loc) => loc.required)
-```
-
-…or return an error *key* that consumers map to localized strings.
+### 12. Validators return raw English strings (`'required'`) — WON'T FIX
+The `ValidatorFn<T>` contract (`String? Function(T? value)`) already
+lets users write any validator with any message. Built-in validators
+are convenience helpers — for localization, users swap in their own
+one-liner returning their translated string. Adding `message` params
+to every built-in would add complexity for a problem already trivially
+solved by the contract itself.
 
 ---
 
@@ -242,28 +243,18 @@ requiredValidator(message: (loc) => loc.required)
 They walk the whole tree and are called from getters used inside builders.
 Worth memoizing — invalidate the cache when any descendant notifies.
 
-### 14. No selector widget that rebuilds on a single field's value change
-`EzyFormConsumer` rebuilds whenever **any** control in the group changes.
+### 14. No selector widget that rebuilds on a single field's value change — DONE in 1.0.0
+Covered by `EzyFormWatcher<R>` which accepts a `selector` function
+and `EzyFormControlWatcher<T>` for the single-control case. Both
+shipped as part of the reactive value watching feature.
 
-```dart
-EzyFormSelector<R>(
-  selector: (form) => form.control('email').value,
-  builder: (context, value) => ...,
-)
-```
-
-…would reduce rebuild churn in big forms.
-
-### 15. No "submit" helper
-Every consumer writes the same pattern:
-
-```dart
-if (form.validate()) { onSubmit(form.values); }
-```
-
-A `form.submit(onValid: ..., onInvalid: ...)` or an `EzyFormSubmitButton`
-widget would standardize it and let the lib also handle "focus first
-invalid field".
+### 15. No "submit" helper — WON'T FIX
+The pattern is a 3-line `if (form.validate()) { onSubmit(form.values); }`
+— too thin to justify a new API. A `form.submit()` method can't handle
+UI concerns (mounted checks, snackbars). A `EzyFormSubmitButton` widget
+would break the headless philosophy. "Focus first invalid field" would
+require `FormControl` to hold a `FocusNode`, which belongs to the
+widget layer. The current explicit pattern gives full control.
 
 ### 16. No `validateOnChange` mode
 Validation only fires when the consumer calls `validate()`. Reactive forms

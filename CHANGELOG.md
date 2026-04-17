@@ -85,6 +85,11 @@
   spinner. Stale results are discarded when the value changes mid-flight.
   `FormGroup.isPending` aggregates across all controls.
 
+* **`FormGroup.addControl` / `removeControl` / `containsControl`** —
+  dynamically add or remove controls at runtime. Supports dot-separated
+  paths for nested groups. Useful for stepwise / wizard / dynamic forms
+  where the set of fields changes based on user input.
+
 * **`EzyFormControlWatcher<T>`** — a lightweight widget that watches a
   single `FormControl` and rebuilds when its value changes. Use it for
   reactive UI (e.g. conditionally showing a field when a checkbox is
