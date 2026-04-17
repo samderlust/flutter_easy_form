@@ -275,12 +275,13 @@ You can `form.control('profile.firstName').setValue(x)`, but a
 `form.setValueAt('profile.firstName', x)` would be friendlier and would
 power the `patchValue` from #3.
 
-### 18. `FormControl<DateTime>` won't survive `jsonEncode(form.values)` — DONE in 1.0.0
-Added opt-in `toJson` / `fromJson` callbacks on `FormControl` and
-`FormArrayControl`. `FormGroup.toJson()` walks the tree calling each
-control's `toJson`. `patchValue` / `setValue` automatically apply
-`fromJson` when loading raw JSON maps. Controls without callbacks
-behave exactly as before.
+### 18. `FormControl<DateTime>` won't survive `jsonEncode(form.values)` — WON'T FIX
+Decided against adding `toJson` / `fromJson` to `FormControl`. In
+practice, JSON parsing belongs in the repository/data layer — by the
+time data reaches the form, it's already typed Dart objects. The form
+stays focused on state management; model conversion is a one-liner
+(`MyModel.fromFormValues(form.values)`) in the calling code. The
+example app demonstrates this pattern with a `UserProfile` model.
 
 ### 19. README doesn't show: nested groups, array validators, async, dynamic add/remove, or `EzyFormConsumer`
 The package has features the docs hide.

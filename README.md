@@ -306,29 +306,21 @@ form.setValue({ ... });
 final map = form.values;  // nested Map<String, dynamic> mirroring the group shape
 ```
 
-### JSON serialization (`toJson` / `fromJson`)
+### Working with models
 
-Non-primitive types like `DateTime` break `jsonEncode(form.values)`. Add `toJson` / `fromJson` callbacks to handle serialization:
+`form.values` returns a `Map<String, dynamic>`. Use your model's `fromMap` / `toMap` to convert between the form and your domain layer:
 
 ```dart
-final form = FormGroup({
-  'name': FormControl<String>(null),
-  'birthDate': FormControl<DateTime>(
-    null,
-    toJson: (v) => v?.toIso8601String(),
-    fromJson: (v) => v != null ? DateTime.tryParse(v) : null,
-  ),
-});
+// Submit: form values → model → API
+if (form.validate()) {
+  final user = UserModel.fromMap(form.values);
+  api.saveUser(user);
+}
 
-// Serialize — DateTime becomes an ISO string
-final json = form.toJson();  // {'name': null, 'birthDate': '1990-01-15T00:00:00.000'}
-jsonEncode(json);               // works!
-
-// Deserialize — ISO string becomes a DateTime
-form.patchValue(jsonDecode(response.body));  // fromJson parses automatically
+// Load: API → model → form
+final user = await repo.fetchUser();
+form.patchValue(user.toMap());
 ```
-
-Controls without callbacks behave exactly as before — the raw value is used. `FormArrayControl` also supports `toJson` / `fromJson`, applied to each child element.
 
 ### State getters
 

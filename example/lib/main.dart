@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:ezy_form/ezy_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'user_profile.dart';
 
 void main() => runApp(const MyApp());
 
@@ -23,6 +23,22 @@ class MyApp extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Simulates a server response — in a real app, the repository layer would
+// parse JSON into UserProfile and then you'd patch the form with typed values.
+// ---------------------------------------------------------------------------
+UserProfile get _serverProfile => UserProfile(
+      name: 'Loaded Name',
+      email: 'loaded@example.com',
+      age: 42,
+      birthDate: DateTime(1985, 6, 15),
+      gender: 'other',
+      agreed: true,
+      tags: ['flutter', 'dart', 'mobile'],
+      firstName: 'Loaded',
+      lastName: 'Server',
+    );
+
+// ---------------------------------------------------------------------------
 // Custom array-level validator demonstrating `arrayValidators` (added in
 // 0.0.2). It receives the aggregated values list and runs once per array.
 // ---------------------------------------------------------------------------
@@ -35,59 +51,32 @@ String? minTwoTags(List<String?>? values) {
 // The form definition. Demonstrates:
 //   * FormGroup at the top
 //   * Nested FormGroup (`info`)
-//   * FormControl<String> / <bool> / <int> with initial values
-//     (so reset is visible)
+//   * FormControl<String> / <bool> / <int> / <DateTime> with initial values
 //   * FormArrayControl with BOTH per-item validators AND arrayValidators
 //   * requiredValidator / requiredTrueValidator
 // ---------------------------------------------------------------------------
 final form = FormGroup({
-  // String field with initial value + minLength validator.
   'name': FormControl<String>('Sam', validators: [
     requiredValidator,
     minLength(2),
   ]),
-
-  // Email field — uses the built-in emailValidator.
   'email': FormControl<String>(null, validators: [
     requiredValidator,
     emailValidator,
   ]),
-
-  // Numeric field — uses built-in min/max validators.
   'age': FormControl<int>(
     25,
-    validators: [
-      requiredValidator,
-      minValue(18),
-      maxValue(120),
-    ],
+    validators: [requiredValidator, minValue(18), maxValue(120)],
   ),
-
-  // DateTime field with toJson/fromJson — survives jsonEncode/jsonDecode.
-  'birthDate': FormControl<DateTime>(
-    DateTime(1990, 1, 15),
-    toJson: (v) => v?.toIso8601String(),
-    fromJson: (v) => v != null ? DateTime.tryParse(v.toString()) : null,
-  ),
-
-  // Dropdown.
+  'birthDate': FormControl<DateTime>(DateTime(1990, 1, 15)),
   'gender': FormControl<String>(null, validators: [requiredValidator]),
-
-  // Bool checkbox with `requiredTrueValidator`.
   'agreed': FormControl<bool>(false, validators: [requiredTrueValidator]),
-
-  // Only shown when 'agreed' is true — demonstrates EzyFormControlWatcher.
   'licenseNumber': FormControl<String>(null),
-
-  // Array with BOTH per-item rules (each child must be non-empty)
-  // AND an array-level rule (must have at least 2 entries).
   'tags': FormArrayControl<String>(
     null,
     validators: [requiredValidator],
     arrayValidators: [minTwoTags],
   ),
-
-  // Nested FormGroup with initial values — `reset()` restores them.
   'info': FormGroup({
     'firstName': FormControl<String>('Tonny', validators: [requiredValidator]),
     'lastName': FormControl<String>('Alex', validators: [requiredValidator]),
@@ -131,9 +120,6 @@ class DynamicFormExample extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Nested FormGroup section: `info.firstName`, `info.lastName`.
-// Demonstrates dotted-path lookup via formControlName: 'info.firstName'.
-// The controller + focusNode are wired to the TextField, so reset /
-// clear / patchValue all reflect into the text field automatically.
 // ---------------------------------------------------------------------------
 class _ProfileSection extends StatelessWidget {
   const _ProfileSection();
@@ -170,11 +156,7 @@ class _ProfileSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level controls: text + typed text + dropdown.
-// Demonstrates all three EzyFormControl patterns in one section:
-//   1. String — controller auto-syncs, no parse/format needed
-//   2. int — provide parse + format for typed text binding
-//   3. Dropdown — ignore controller/focusNode, use onChanged directly
+// Top-level controls: text + typed text + date picker + dropdown.
 // ---------------------------------------------------------------------------
 class _TopLevelSection extends StatelessWidget {
   const _TopLevelSection();
@@ -227,16 +209,14 @@ class _TopLevelSection extends StatelessWidget {
             ),
           ),
         ),
-        // Pattern 3: DateTime — uses toJson/fromJson for JSON serialization.
-        // The date picker writes a real DateTime into the control; toJson()
-        // converts it to an ISO string for the API.
+        // Pattern 3: DateTime — date picker, ignores controller/focusNode.
         EzyFormControl<DateTime>(
           formControlName: 'birthDate',
           builder: (context, control, _, __) => ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
               control.value != null
-                  ? 'Birth date: ${control.value!.year}-${control.value!.month.toString().padLeft(2, '0')}-${control.value!.day.toString().padLeft(2, '0')}'
+                  ? 'Birth date: ${_formatDate(control.value!)}'
                   : 'Birth date: not set',
             ),
             trailing: const Icon(Icons.calendar_today),
@@ -337,7 +317,6 @@ class _TagsSection extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Bool field + conditional field via EzyFormControlWatcher.
-// The license number field only appears when 'agreed' is true.
 // ---------------------------------------------------------------------------
 class _AgreedSection extends StatelessWidget {
   const _AgreedSection();
@@ -366,9 +345,6 @@ class _AgreedSection extends StatelessWidget {
             ],
           ),
         ),
-        // EzyFormControlWatcher: watches 'agreed' and conditionally
-        // shows the license number field without nesting inside the
-        // checkbox builder.
         EzyFormControlWatcher<bool>(
           formControlName: 'agreed',
           builder: (context, agreed) {
@@ -393,7 +369,6 @@ class _AgreedSection extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // EzyFormWatcher demo: watches multiple controls via a selector function.
-// Uses a Dart record for type-safe multi-value watching.
 // ---------------------------------------------------------------------------
 class _GreetingBanner extends StatelessWidget {
   const _GreetingBanner();
@@ -425,24 +400,11 @@ class _GreetingBanner extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Pretend "server response" used by the "Load from server" button below.
-// ---------------------------------------------------------------------------
-const _serverResponse = <String, dynamic>{
-  'name': 'Loaded Name',
-  'email': 'loaded@example.com',
-  'age': 42,
-  'birthDate': '1985-06-15T00:00:00.000', // ISO string → DateTime via fromJson
-  'gender': 'other',
-  'agreed': true,
-  'tags': ['flutter', 'dart', 'mobile'],
-  'info': {
-    'firstName': 'Loaded',
-    'lastName': 'Server',
-  },
-};
-
-// ---------------------------------------------------------------------------
 // Actions row via `EzyFormConsumer`.
+// Demonstrates:
+//   * Submit → convert form.values to a UserProfile model
+//   * Load from server → repo gives us a UserProfile, we patch it in
+//   * Reset / Clear
 // ---------------------------------------------------------------------------
 class _ActionsSection extends StatelessWidget {
   const _ActionsSection();
@@ -461,27 +423,24 @@ class _ActionsSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () {
                   final ok = form.validate();
-                  debugPrint('submit valid=$ok values=${form.values}');
+                  if (ok) {
+                    // form.values → typed model → send to API
+                    final profile = UserProfile.fromMap(form.values);
+                    debugPrint('submit: $profile');
+                  } else {
+                    debugPrint('form is invalid');
+                  }
                 },
                 icon: const Icon(Icons.send),
-                label: const Text('Submit (validate)'),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  // toJson() converts DateTime → ISO string etc.
-                  final json = form.toJson();
-                  final encoded = jsonEncode(json);
-                  debugPrint('toJson: $encoded');
-                },
-                icon: const Icon(Icons.data_object),
-                label: const Text('toJson'),
+                label: const Text('Submit'),
               ),
               OutlinedButton.icon(
                 onPressed: () {
-                  // patchValue with raw JSON — fromJson parses strings
-                  // back into DateTime automatically.
-                  form.patchValue(_serverResponse);
-                  debugPrint('after patchValue: ${form.values}');
+                  // In a real app: repo fetches JSON → parses to model.
+                  // Then model.toMap() patches the form with typed values.
+                  final profile = _serverProfile;
+                  form.patchValue(profile.toMap());
+                  debugPrint('loaded from server: $profile');
                 },
                 icon: const Icon(Icons.cloud_download),
                 label: const Text('Load from server'),
@@ -535,9 +494,6 @@ class _LiveStatePanel extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text('values:'),
                   Text(form.values.toString()),
-                  const SizedBox(height: 8),
-                  const Text('toJson (JSON-safe):'),
-                  Text(form.toJson().toString()),
                 ],
               ),
             ),
@@ -564,10 +520,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Tiny presentation helper for text fields. All binding logic (controller
-// sync, touched-on-blur) is handled by EzyFormControl itself.
-// ---------------------------------------------------------------------------
 Widget _styledTextField({
   required String label,
   required FormControl<String> control,
@@ -588,6 +540,9 @@ Widget _styledTextField({
     ),
   );
 }
+
+String _formatDate(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 extension IndexedIterable<E> on Iterable<E> {
   Iterable<R> mapIndexed<R>(R Function(E e, int i) f) {

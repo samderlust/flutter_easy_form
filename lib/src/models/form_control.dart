@@ -32,26 +32,6 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// The list of validators to validate the value of the form control.
   List<ValidatorFn<T>> validators;
 
-  /// Optional callback that converts the control's value to a
-  /// JSON-compatible type (e.g. `DateTime` → `String`).
-  ///
-  /// Used by [FormGroup.toJson]. When `null`, the raw [value] is used.
-  final Object? Function(T? value)? _toJson;
-
-  /// Optional callback that converts a JSON-compatible value back to
-  /// this control's type (e.g. `String` → `DateTime`).
-  ///
-  /// Used by [FormGroup.patchValue] / [FormGroup.setValue] when loading
-  /// a raw JSON map. When `null`, the incoming value is passed through
-  /// as-is.
-  final T? Function(dynamic value)? fromJson;
-
-  /// Returns the JSON-compatible representation of [value].
-  ///
-  /// If a [toJson] callback was supplied, it is used. Otherwise the raw
-  /// [value] is returned.
-  Object? get jsonValue => _toJson != null ? _toJson(value) : value;
-
   /// The callback to be executed when the form control is reset.
   VoidCallback? _onReset;
 
@@ -62,17 +42,12 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// [dirty] Whether the form control has been modified by the user.
   /// [touched] Whether the form control has been touched by the user.
   /// [validators] The list of validators to validate the value of the form control.
-  /// [toJson] Optional serializer for [FormGroup.toJson].
-  /// [fromJson] Optional deserializer for [FormGroup.patchValue] / [setValue].
   FormControl(
     T? value, {
     this.dirty = false,
     this.touched = false,
     this.validators = const [],
-    Object? Function(T? value)? toJson,
-    this.fromJson,
-  })  : _toJson = toJson,
-        _value = value,
+  })  : _value = value,
         _initialValue = value;
 
   /// The validation status of the form control.
