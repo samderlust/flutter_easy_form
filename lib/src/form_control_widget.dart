@@ -60,20 +60,45 @@ import 'providers/form_control_provider.dart';
 ///   ),
 /// )
 /// ```
+///
+/// Example — direct control reference (e.g. inside a [FormArrayControl]):
+/// ```dart
+/// EzyFormControl<String>(
+///   formControl: arrayControl.controls![i],
+///   builder: (context, control, controller, focusNode) => TextField(
+///     controller: controller,
+///     focusNode: focusNode,
+///   ),
+/// )
+/// ```
 class EzyFormControl<T> extends StatefulWidget {
   const EzyFormControl({
     super.key,
-    required this.formControlName,
+    this.formControlName,
+    this.formControl,
     required this.builder,
     this.parse,
     this.format,
     this.controller,
     this.focusNode,
-  });
+  }) : assert(
+          formControlName != null || formControl != null,
+          'Either formControlName or formControl must be provided.',
+        );
 
   /// Dotted-path name of the [FormControl] to bind to. Resolved from the
   /// nearest ancestor [EzyFormWidget].
-  final String formControlName;
+  ///
+  /// Either [formControlName] or [formControl] must be provided, but not
+  /// both.
+  final String? formControlName;
+
+  /// A direct [FormControl] reference to bind to. Use this when the
+  /// control is not registered in a [FormGroup] (e.g. children of a
+  /// [FormArrayControl]).
+  ///
+  /// Either [formControlName] or [formControl] must be provided.
+  final FormControl<T>? formControl;
 
   /// Renders the bound widget. Receives the current [FormControl] (so you
   /// can read `valid` / `error` / `dirty` / `touched`), a
@@ -203,8 +228,8 @@ class _EzyFormControlState<T> extends State<EzyFormControl<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final formGroup = EzyFormProvider.of(context);
-    final control = formGroup.control<T>(widget.formControlName);
+    final control = widget.formControl ??
+        EzyFormProvider.of(context).control<T>(widget.formControlName!);
     _bindControl(control);
 
     return EzyFormControlProvider<T>(

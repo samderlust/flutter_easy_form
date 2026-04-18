@@ -31,59 +31,60 @@ class AddressesSection extends StatelessWidget {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          ...groupArray.controls.mapIndexed((group, i) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text('Address ${i + 1}',
-                              style: Theme.of(context).textTheme.labelLarge),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => groupArray.removeGroup(i),
+          ...groupArray.controls.mapIndexed((group, i) => EzyFormWidget(
+                formGroup: group,
+                builder: (context, _) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text('Address ${i + 1}',
+                                style: Theme.of(context).textTheme.labelLarge),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => groupArray.removeGroup(i),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        EzyFormControl<String>(
+                          formControlName: 'street',
+                          builder: (context, control, controller, focusNode) =>
+                              styledTextField(
+                            label: 'Street',
+                            control: control,
+                            controller: controller,
+                            focusNode: focusNode,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: TextEditingController(
-                            text: group.control<String>('street').value),
-                        decoration: InputDecoration(
-                          labelText: 'Street',
-                          errorText: group.control<String>('street').valid
-                              ? null
-                              : group.control<String>('street').error,
                         ),
-                        onChanged: (v) =>
-                            group.control<String>('street').setValue(v),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: TextEditingController(
-                            text: group.control<String>('city').value),
-                        decoration: InputDecoration(
-                          labelText: 'City',
-                          errorText: group.control<String>('city').valid
-                              ? null
-                              : group.control<String>('city').error,
+                        const SizedBox(height: 8),
+                        EzyFormControl<String>(
+                          formControlName: 'city',
+                          builder: (context, control, controller, focusNode) =>
+                              styledTextField(
+                            label: 'City',
+                            control: control,
+                            controller: controller,
+                            focusNode: focusNode,
+                          ),
                         ),
-                        onChanged: (v) =>
-                            group.control<String>('city').setValue(v),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: TextEditingController(
-                            text: group.control<String>('zip').value),
-                        decoration: const InputDecoration(labelText: 'Zip'),
-                        onChanged: (v) =>
-                            group.control<String>('zip').setValue(v),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        EzyFormControl<String>(
+                          formControlName: 'zip',
+                          builder: (context, control, controller, focusNode) =>
+                              TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: const InputDecoration(labelText: 'Zip'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )),

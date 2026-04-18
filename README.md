@@ -437,7 +437,7 @@ addresses.removeAll();          // drop all groups
 addresses.values;               // List<Map<String, dynamic>>
 ```
 
-Use `EzyFormGroupArrayControl` in the widget tree:
+Use `EzyFormGroupArrayControl` in the widget tree. Wrap each child group in `EzyFormWidget` so that `EzyFormControl` resolves against the child group's context:
 
 ```dart
 EzyFormGroupArrayControl(
@@ -445,16 +445,29 @@ EzyFormGroupArrayControl(
   builder: (context, groupArray) => Column(
     children: [
       for (var i = 0; i < groupArray.length; i++)
-        Row(children: [
-          Expanded(child: TextField(
-            onChanged: (v) =>
-                groupArray.controls[i].control<String>('street').setValue(v),
-          )),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => groupArray.removeGroup(i),
-          ),
-        ]),
+        EzyFormWidget(
+          formGroup: groupArray.controls[i],
+          builder: (context, _) => Row(children: [
+            Expanded(
+              child: EzyFormControl<String>(
+                formControlName: 'street',
+                builder: (context, control, controller, focusNode) =>
+                    TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'Street',
+                    errorText: control.valid ? null : control.error,
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => groupArray.removeGroup(i),
+            ),
+          ]),
+        ),
       TextButton(
         onPressed: () => groupArray.addGroup(),
         child: const Text('Add address'),

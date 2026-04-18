@@ -41,18 +41,20 @@ class TagsSection extends StatelessWidget {
           ...(arrayControl.controls ?? []).mapIndexed(
             (control, index) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: TextFormField(
-                key: ValueKey(control.hashCode),
-                initialValue: control.value,
-                decoration: InputDecoration(
-                  labelText: 'Tag ${index + 1}',
-                  errorText: control.valid ? null : control.error,
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.remove),
-                    onPressed: () => arrayControl.remove(index),
+              child: EzyFormControl<String>(
+                formControl: control,
+                builder: (context, ctrl, controller, focusNode) => TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'Tag ${index + 1}',
+                    errorText: ctrl.valid ? null : ctrl.error,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.remove),
+                      onPressed: () => arrayControl.remove(index),
+                    ),
                   ),
                 ),
-                onChanged: (value) => control.setValue(value),
               ),
             ),
           ),
