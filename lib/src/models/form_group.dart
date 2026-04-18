@@ -44,6 +44,12 @@ class FormGroup with ChangeNotifier implements FormNode {
     return _flattenMapValues<FormControlBase>(group);
   }
 
+  /// Get a [FormGroupArray] for the provided control name.
+  FormGroupArray groupArrayControl(String ctrlName) {
+    final kList = ctrlName.split('.');
+    return _travelNested<FormGroupArray>(group, kList);
+  }
+
   List<T> _flattenMapValues<T>(Map<String, FormNode> nestedMap) {
     List<T> flattenedValues = [];
     for (var value in nestedMap.values) {
@@ -53,6 +59,13 @@ class FormGroup with ChangeNotifier implements FormNode {
         flattenedValues.add(value as T);
       } else if (value is FormGroup) {
         flattenedValues.addAll(_flattenMapValues(value.group));
+      } else if (value is FormGroupArray) {
+        for (var g in value.controls) {
+          if (g is T) {
+            flattenedValues.add(g as T);
+          }
+          flattenedValues.addAll(_flattenMapValues(g.group));
+        }
       }
     }
     return flattenedValues;
@@ -143,6 +156,8 @@ class FormGroup with ChangeNotifier implements FormNode {
         map[key] = v.values;
       } else if (v is FormControl) {
         map[key] = v.value;
+      } else if (v is FormGroupArray) {
+        map[key] = v.values;
       } else if (v is FormArrayControl) {
         map[key] = v.values;
       }
@@ -218,6 +233,24 @@ class FormGroup with ChangeNotifier implements FormNode {
           node.setValue(value);
         } else {
           node.patchValue(value);
+        }
+      } else if (node is FormGroupArray) {
+        if (value is! List) {
+          if (strict) {
+            throw ArgumentError(
+              'Expected List for FormGroupArray "$key", got '
+              '${value.runtimeType}.',
+            );
+          }
+          continue;
+        }
+        final maps = value
+            .whereType<Map<String, dynamic>>()
+            .toList();
+        if (markDirty) {
+          node.setValue(maps);
+        } else {
+          node.patchValue(maps);
         }
       } else if (node is FormArrayControl) {
         if (value is! List) {

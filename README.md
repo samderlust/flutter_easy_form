@@ -403,10 +403,85 @@ arrayControl.setValue([...]);   // resize + update, marks dirty
 arrayControl.patchValue([...]); // resize + update, no dirty
 ```
 
+### Form group arrays
+
+Use `FormGroupArray` for arrays of structured objects — addresses, line items, work history entries, etc. Each child is a full `FormGroup` with its own fields and validators:
+
+```dart
+final form = FormGroup({
+  'addresses': FormGroupArray(
+    [
+      FormGroup({
+        'street': FormControl<String>('123 Main', validators: [requiredValidator]),
+        'city': FormControl<String>('NYC', validators: [requiredValidator]),
+        'zip': FormControl<String>('10001'),
+      }),
+    ],
+    // Factory for creating new empty groups via addGroup()
+    templateFactory: () => FormGroup({
+      'street': FormControl<String>(null, validators: [requiredValidator]),
+      'city': FormControl<String>(null, validators: [requiredValidator]),
+      'zip': FormControl<String>(null),
+    }),
+  ),
+});
+```
+
+```dart
+final addresses = form.groupArrayControl('addresses');
+
+addresses.addGroup();           // uses templateFactory
+addresses.addGroup(myGroup);    // explicit group
+addresses.removeGroup(index);   // remove at index
+addresses.removeAll();          // drop all groups
+addresses.values;               // List<Map<String, dynamic>>
+```
+
+Use `EzyFormGroupArrayControl` in the widget tree:
+
+```dart
+EzyFormGroupArrayControl(
+  formControlName: 'addresses',
+  builder: (context, groupArray) => Column(
+    children: [
+      for (var i = 0; i < groupArray.length; i++)
+        Row(children: [
+          Expanded(child: TextField(
+            onChanged: (v) =>
+                groupArray.controls[i].control<String>('street').setValue(v),
+          )),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => groupArray.removeGroup(i),
+          ),
+        ]),
+      TextButton(
+        onPressed: () => groupArray.addGroup(),
+        child: const Text('Add address'),
+      ),
+    ],
+  ),
+)
+```
+
+Array-level validators work the same way:
+
+```dart
+FormGroupArray(
+  [...],
+  arrayValidators: [
+    (groups) => (groups == null || groups.length < 2)
+        ? 'Add at least 2 addresses'
+        : null,
+  ],
+)
+```
+
 ## Architecture
 
 - **`FormControl<T>`** — single typed value, validators, dirty/touched/error state.
 - **`FormArrayControl<T>`** — list of `FormControl<T>`. Per-item validators propagated to children. Array-level `arrayValidators` run against the aggregated list.
+- **`FormGroupArray`** — list of `FormGroup`s for arrays of structured objects (addresses, line items, etc.). Supports `addGroup()` / `removeGroup()` with optional `templateFactory` for creating new groups. `values` returns `List<Map<String, dynamic>>`.
 - **`FormGroup`** — `Map<String, FormNode>` of controls. Root aggregator for `isValid`, `isDirty`, `isTouched`, `validate()`, `reset()`, `clear()`. Supports dynamic `addControl()` / `removeControl()`.
 
-All three are `ChangeNotifier` subclasses. The widget layer (`EzyFormWidget`, `EzyFormControl`, `EzyFormArrayControl`, `EzyFormConsumer`) uses `InheritedNotifier` so only the subtree that depends on a specific notifier rebuilds.
+All four are `ChangeNotifier` subclasses. The widget layer (`EzyFormWidget`, `EzyFormControl`, `EzyFormArrayControl`, `EzyFormGroupArrayControl`, `EzyFormConsumer`) uses `InheritedNotifier` so only the subtree that depends on a specific notifier rebuilds.

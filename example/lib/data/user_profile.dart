@@ -1,3 +1,30 @@
+class Address {
+  final String street;
+  final String city;
+  final String zip;
+
+  const Address({
+    required this.street,
+    required this.city,
+    required this.zip,
+  });
+
+  factory Address.fromMap(Map<String, dynamic> map) => Address(
+        street: map['street'] as String? ?? '',
+        city: map['city'] as String? ?? '',
+        zip: map['zip'] as String? ?? '',
+      );
+
+  Map<String, dynamic> toMap() => {
+        'street': street,
+        'city': city,
+        'zip': zip,
+      };
+
+  @override
+  String toString() => 'Address(street: $street, city: $city, zip: $zip)';
+}
+
 class UserProfile {
   final String name;
   final String email;
@@ -7,6 +34,7 @@ class UserProfile {
   final bool agreed;
   final String? licenseNumber;
   final List<String> tags;
+  final List<Address> addresses;
   final String firstName;
   final String lastName;
 
@@ -19,6 +47,7 @@ class UserProfile {
     required this.agreed,
     this.licenseNumber,
     required this.tags,
+    required this.addresses,
     required this.firstName,
     required this.lastName,
   });
@@ -39,6 +68,11 @@ class UserProfile {
       agreed: map['agreed'] as bool? ?? false,
       licenseNumber: map['licenseNumber'] as String?,
       tags: (map['tags'] as List?)?.whereType<String>().toList() ?? [],
+      addresses: (map['addresses'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(Address.fromMap)
+              .toList() ??
+          [],
       firstName: info?['firstName'] as String? ?? '',
       lastName: info?['lastName'] as String? ?? '',
     );
@@ -53,6 +87,7 @@ class UserProfile {
         'agreed': agreed,
         'licenseNumber': licenseNumber,
         'tags': tags,
+        'addresses': addresses.map((a) => a.toMap()).toList(),
         'info': {
           'firstName': firstName,
           'lastName': lastName,
@@ -64,5 +99,6 @@ class UserProfile {
       'UserProfile(name: $name, email: $email, age: $age, '
       'birthDate: ${birthDate.toIso8601String()}, gender: $gender, '
       'agreed: $agreed, licenseNumber: $licenseNumber, '
-      'tags: $tags, firstName: $firstName, lastName: $lastName)';
+      'tags: $tags, addresses: $addresses, '
+      'firstName: $firstName, lastName: $lastName)';
 }

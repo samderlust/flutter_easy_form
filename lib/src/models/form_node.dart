@@ -1,8 +1,8 @@
 /// Marker interface for types that can appear as values in a
 /// [FormGroup]'s control map.
 ///
-/// Only [FormControl], [FormArrayControl], and [FormGroup] implement
-/// this interface. Using `Map<String, FormNode>` instead of
+/// Only [FormControl], [FormArrayControl], [FormGroupArray], and
+/// [FormGroup] implement this interface. Using `Map<String, FormNode>` instead of
 /// `Map<String, Object>` catches invalid entries at compile time:
 ///
 /// ```dart

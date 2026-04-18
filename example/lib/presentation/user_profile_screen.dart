@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/user_profile_repository.dart';
 import 'widgets/actions_section.dart';
+import 'widgets/addresses_section.dart';
 import 'widgets/agreed_section.dart';
 import 'widgets/dynamic_fields_section.dart';
 import 'widgets/greeting_banner.dart';
@@ -48,6 +49,24 @@ class UserProfileScreen extends StatelessWidget {
         validators: [requiredValidator],
         arrayValidators: [minTwoTags],
       ),
+      'addresses': FormGroupArray(
+        [
+          FormGroup({
+            'street': FormControl<String>('123 Main St',
+                validators: [requiredValidator]),
+            'city': FormControl<String>('New York',
+                validators: [requiredValidator]),
+            'zip': FormControl<String>('10001'),
+          }),
+        ],
+        templateFactory: () => FormGroup({
+          'street':
+              FormControl<String>(null, validators: [requiredValidator]),
+          'city':
+              FormControl<String>(null, validators: [requiredValidator]),
+          'zip': FormControl<String>(null),
+        }),
+      ),
       'info': FormGroup({
         'firstName':
             FormControl<String>('Tonny', validators: [requiredValidator]),
@@ -70,6 +89,8 @@ class UserProfileScreen extends StatelessWidget {
               const TopLevelSection(),
               const SizedBox(height: 16),
               const TagsSection(),
+              const SizedBox(height: 16),
+              const AddressesSection(),
               const SizedBox(height: 16),
               const DynamicFieldsSection(),
               const SizedBox(height: 16),

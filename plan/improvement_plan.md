@@ -283,14 +283,14 @@ where `FormNode` is an `abstract interface class` implemented by
 `FormControl`, `FormArrayControl`, and `FormGroup`. Invalid entries are
 caught at compile time.
 
-### 21. `FormGroupArray` — array of `FormGroup`s
-`FormArrayControl<T>` holds a flat list of scalars. Many real-world forms
-need arrays of objects — e.g. a list of addresses (each with
-street/city/zip), multiple phone numbers (type + number), or line items
-in an invoice. A `FormGroupArray` (or `FormArrayControl<FormGroup>`)
-would hold `List<FormGroup>` with `add()` / `remove(index)` /
-`removeAll()` / `reset()` / `setValue(List<Map>)` / `patchValue(List<Map>)`
-semantics matching the existing array API.
+### 21. `FormGroupArray` — array of `FormGroup`s — DONE in 1.0.0
+Implemented `FormGroupArray` class holding `List<FormGroup>` with
+`addGroup()` / `removeGroup(index)` / `removeAll()` / `reset()` /
+`clear()` / `setValue(List<Map>)` / `patchValue(List<Map>)`. Optional
+`templateFactory` enables `addGroup()` without arguments and dynamic
+resizing. Array-level validators via `GroupArrayValidatorFn`. Widget
+support via `EzyFormGroupArrayControl`. Implements `FormNode` for
+type-safe inclusion in `FormGroup` maps.
 
 ### 22. Async validators
 Server-side checks (username availability, email uniqueness) need:

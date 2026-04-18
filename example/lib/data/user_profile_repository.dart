@@ -26,6 +26,10 @@ class UserProfileRepository {
       gender: 'other',
       agreed: true,
       tags: ['flutter', 'dart', 'mobile'],
+      addresses: [
+        const Address(street: '456 Oak Ave', city: 'San Francisco', zip: '94102'),
+        const Address(street: '789 Pine Rd', city: 'Seattle', zip: '98101'),
+      ],
       firstName: 'Loaded',
       lastName: 'Server',
     );

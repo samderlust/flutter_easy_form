@@ -90,6 +90,19 @@
   paths for nested groups. Useful for stepwise / wizard / dynamic forms
   where the set of fields changes based on user input.
 
+* **`FormGroupArray`** — a new model for arrays of `FormGroup`s, designed
+  for repeated structured sections like addresses, line items, or work
+  history entries. Provides `addGroup()` / `removeGroup(index)` /
+  `removeAll()` / `reset()` / `clear()` / `setValue(List<Map>)` /
+  `patchValue(List<Map>)`. An optional `templateFactory` enables
+  `addGroup()` without arguments and dynamic resizing via
+  `setValue`/`patchValue`. Array-level validators run via
+  `GroupArrayValidatorFn`. Implements `FormNode` so it slots into
+  `FormGroup` maps. `FormGroup.groupArrayControl(name)` provides lookup.
+* **`EzyFormGroupArrayControl`** — widget for consuming a `FormGroupArray`
+  inside an `EzyFormWidget`, following the same pattern as
+  `EzyFormArrayControl`.
+
 * **`EzyFormControlWatcher<T>`** — a lightweight widget that watches a
   single `FormControl` and rebuilds when its value changes. Use it for
   reactive UI (e.g. conditionally showing a field when a checkbox is
@@ -123,6 +136,7 @@
 | `FormControl<T>` | restore initial value | value → `null` | — |
 | `FormGroup` | recurse `reset()` | recurse `clear()` | — |
 | `FormArrayControl<T>` | restore initial children | keep children, null values | drop every child |
+| `FormGroupArray` | restore initial groups | keep groups, clear values | drop every group |
 
 All three operations also clear `dirty` / `touched` / `error` and notify.
 
