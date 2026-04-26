@@ -8,8 +8,9 @@
   and with the `FormArrayControl.reset()` snapshot behavior shipped in
   0.0.2. Migration: if your code relied on `reset()` wiping a control to
   `null`, call the new `clear()` instead.
-* **`FormControlBase` interface gained a `clear()` method.** Any custom
-  implementer of this interface must add it.
+* **`FormControlBase` interface gained `clear()`, `markAsDisabled()`,
+  `markAsEnabled()`, `enabled`, and `disabled`** members. Any custom
+  implementer of this interface must add them.
 * **`FormControl.setValue` is now a no-op when the new value equals the
   current value.** No listeners are notified and `dirty` / `touched` are
   not flipped. Most consumers won't notice this; if you relied on
@@ -84,6 +85,22 @@
   While running, `control.pending` is `true` so the UI can show a
   spinner. Stale results are discarded when the value changes mid-flight.
   `FormGroup.isPending` aggregates across all controls.
+
+* **`FormControl.markAsDisabled()` / `markAsEnabled()`** — toggle the
+  `enabled` / `disabled` state on any control (`FormControl`,
+  `FormArrayControl`, `FormGroupArray`). Disabled controls are skipped
+  by `validate()`, excluded from `FormGroup.values`, and always report
+  `valid = true`. Constructors accept `enabled:` (default `true`).
+  Listeners are notified on state change so the UI can grey out fields.
+
+* **`FormArrayControl.insert(index, [value])`** — insert a new child at
+  any position. Out-of-range indices are clamped.
+* **`FormArrayControl.move(from, to)`** — reorder children for
+  drag-and-drop UX. Preserves `FormControl` identity so widgets holding
+  direct references stay valid.
+* **`FormArrayControl.addControl(FormControl<T>)`** ��� append a pre-built
+  control without overwriting its validators, so individual items can
+  have custom validation rules.
 
 * **`FormGroup.addControl` / `removeControl` / `containsControl`** —
   dynamically add or remove controls at runtime. Supports dot-separated

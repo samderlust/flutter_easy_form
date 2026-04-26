@@ -4,6 +4,27 @@
 
 A lightweight, headless form-state library for Flutter. No third-party state management — just `ChangeNotifier` + `InheritedNotifier`. You bring any widget (`TextField`, `CupertinoTextField`, `Checkbox`, `DropdownButtonFormField`, third-party inputs, etc.) and `ezy_form` handles the state, validation, and lifecycle.
 
+## Features
+
+| Feature | Details |
+|---|---|
+| [**Typed controls**](#1-declare-a-form) | `FormControl<T>` for any type — `String`, `int`, `double`, `bool`, `DateTime`, custom models |
+| [**Built-in text binding**](#3-render-fields-with-ezyformcontrol) | `EzyFormControl` provides `TextEditingController` + `FocusNode` with auto two-way sync, touched-on-blur, and external write handling (`reset`, `clear`, `patchValue`) |
+| [**Typed text fields**](#3-render-fields-with-ezyformcontrol) | `parse` / `format` callbacks for non-String text inputs (e.g. `int.tryParse`) |
+| [**Form arrays**](#array-operations) | `FormArrayControl<T>` for dynamic lists — `add`, `insert`, `move`, `remove`, `addControl` |
+| [**Form group arrays**](#form-group-arrays) | `FormGroupArray` for arrays of structured objects (addresses, line items) with `templateFactory` |
+| [**Nested groups**](#nested-groups) | `FormGroup` nesting with dot-path lookups (`'info.firstName'`) |
+| [**Dynamic controls**](#dynamic-controls) | `addControl` / `removeControl` at runtime for wizard / stepwise forms |
+| [**Sync validators**](#validators) | `required`, `email`, `minLength`, `maxLength`, `minValue`, `maxValue`, `pattern`, `equalTo`, `compose`, `composeOr` |
+| [**Async validators**](#async-validators) | Server-side checks with `pending` state for loading indicators |
+| [**Array validators**](#4-form-arrays) | `arrayValidators` for collection-level rules (min items, uniqueness, etc.) |
+| [**Disabled controls**](#disabled-controls) | `markAsDisabled()` / `markAsEnabled()` — skipped by validation, excluded from values |
+| [**Reset / Clear / Remove**](#reset-restore-initial-values) | Three distinct verbs: `reset()` (restore initial), `clear()` (wipe to null), `removeAll()` (drop children) |
+| [**Patch & Set**](#load-from-server-patchvalue) | `patchValue` (lenient, no dirty) and `setValue` (strict, marks dirty) at control and group level |
+| [**Reactive watchers**](#reactive-value-watching) | `EzyFormControlWatcher` for single values, `EzyFormWatcher` with selector for multi-value / computed |
+| **Headless** | No opinionated widgets — use any Flutter input widget |
+| **Zero dependencies** | Built on Flutter's `ChangeNotifier` + `InheritedNotifier` only |
+
 ## Installing
 
 ```yaml
@@ -391,16 +412,48 @@ form.removeControl('phone');
 if (form.containsControl('phone')) { ... }
 ```
 
+### Disabled controls
+
+Disable a control to exclude it from validation and `FormGroup.values` — useful for conditional fields like "shipping address same as billing":
+
+```dart
+// Disable — skips validate(), excluded from form.values, always valid
+control.markAsDisabled();
+
+// Re-enable
+control.markAsEnabled();
+
+// Check state
+if (control.disabled) { /* grey out the UI */ }
+```
+
+Works on `FormControl`, `FormArrayControl`, and `FormGroupArray`. You can also construct a control as disabled:
+
+```dart
+FormControl<String>(null, enabled: false);
+```
+
 ### Array operations
 
 ```dart
-arrayControl.add('value');     // append a new child
-arrayControl.remove(index);    // remove at index (no-op if out of range)
-arrayControl.removeAll();      // drop every child
-arrayControl.clear();          // keep children, null every value
-arrayControl.reset();          // restore initial shape from constructor
-arrayControl.setValue([...]);   // resize + update, marks dirty
-arrayControl.patchValue([...]); // resize + update, no dirty
+arrayControl.add('value');          // append a new child
+arrayControl.insert(0, 'first');    // insert at index (clamps out-of-range)
+arrayControl.addControl(myCtrl);    // append a pre-built FormControl (keeps its validators)
+arrayControl.move(from, to);        // reorder for drag-and-drop
+arrayControl.remove(index);         // remove at index (no-op if out of range)
+arrayControl.removeAll();           // drop every child
+arrayControl.clear();               // keep children, null every value
+arrayControl.reset();               // restore initial shape from constructor
+arrayControl.setValue([...]);        // resize + update, marks dirty
+arrayControl.patchValue([...]);      // resize + update, no dirty
+```
+
+`addControl` is useful when a specific item needs custom validators:
+
+```dart
+arrayControl.addControl(
+  FormControl<String>('special', validators: [minLength(5)]),
+);
 ```
 
 ### Form group arrays
@@ -492,9 +545,9 @@ FormGroupArray(
 
 ## Architecture
 
-- **`FormControl<T>`** — single typed value, validators, dirty/touched/error state.
-- **`FormArrayControl<T>`** — list of `FormControl<T>`. Per-item validators propagated to children. Array-level `arrayValidators` run against the aggregated list.
+- **`FormControl<T>`** — single typed value, validators, dirty/touched/error/enabled state.
+- **`FormArrayControl<T>`** — list of `FormControl<T>`. Per-item validators propagated to children. Array-level `arrayValidators` run against the aggregated list. Supports `insert`, `move`, `addControl` for reordering and custom-validator items.
 - **`FormGroupArray`** — list of `FormGroup`s for arrays of structured objects (addresses, line items, etc.). Supports `addGroup()` / `removeGroup()` with optional `templateFactory` for creating new groups. `values` returns `List<Map<String, dynamic>>`.
-- **`FormGroup`** — `Map<String, FormNode>` of controls. Root aggregator for `isValid`, `isDirty`, `isTouched`, `validate()`, `reset()`, `clear()`. Supports dynamic `addControl()` / `removeControl()`.
+- **`FormGroup`** — `Map<String, FormNode>` of controls. Root aggregator for `isValid`, `isDirty`, `isTouched`, `validate()`, `reset()`, `clear()`. Supports dynamic `addControl()` / `removeControl()`. Disabled controls are excluded from `values` and skipped by `validate()`.
 
 All four are `ChangeNotifier` subclasses. The widget layer (`EzyFormWidget`, `EzyFormControl`, `EzyFormArrayControl`, `EzyFormGroupArrayControl`, `EzyFormConsumer`) uses `InheritedNotifier` so only the subtree that depends on a specific notifier rebuilds.
