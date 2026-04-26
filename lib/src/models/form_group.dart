@@ -147,6 +147,9 @@ class FormGroup with ChangeNotifier implements FormNode {
   }
 
   /// Get Map values of the form group.
+  ///
+  /// Disabled controls ([FormControl], [FormArrayControl],
+  /// [FormGroupArray]) are excluded from the result.
   Map<String, dynamic> get values {
     final map = <String, dynamic>{};
     for (var key in group.keys) {
@@ -155,10 +158,13 @@ class FormGroup with ChangeNotifier implements FormNode {
       if (v is FormGroup) {
         map[key] = v.values;
       } else if (v is FormControl) {
+        if (v.disabled) continue;
         map[key] = v.value;
       } else if (v is FormGroupArray) {
+        if (v.disabled) continue;
         map[key] = v.values;
       } else if (v is FormArrayControl) {
+        if (v.disabled) continue;
         map[key] = v.values;
       }
     }

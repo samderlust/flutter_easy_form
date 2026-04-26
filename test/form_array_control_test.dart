@@ -266,4 +266,198 @@ void main() {
       expect(notified, 1);
     });
   });
+
+  group('FormArrayControl.insert', () {
+    test('inserts at the given index', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('c');
+
+      arr.insert(1, 'b');
+
+      expect(arr.values, ['a', 'b', 'c']);
+    });
+
+    test('inserts at 0 prepends', () {
+      final arr = FormArrayControl<String>(null)..add('b');
+
+      arr.insert(0, 'a');
+
+      expect(arr.values, ['a', 'b']);
+    });
+
+    test('clamps out-of-range index to end', () {
+      final arr = FormArrayControl<String>(null)..add('a');
+
+      arr.insert(100, 'z');
+
+      expect(arr.values, ['a', 'z']);
+    });
+
+    test('clamps negative index to 0', () {
+      final arr = FormArrayControl<String>(null)..add('b');
+
+      arr.insert(-5, 'a');
+
+      expect(arr.values, ['a', 'b']);
+    });
+
+    test('works on null controls list', () {
+      final arr = FormArrayControl<String>(null);
+
+      arr.insert(0, 'first');
+
+      expect(arr.values, ['first']);
+    });
+
+    test('propagates validators to the new child', () {
+      final arr = FormArrayControl<String>(
+        null,
+        validators: [requiredValidator],
+      );
+
+      arr.insert(0, null);
+      arr.controls![0].validate();
+
+      expect(arr.controls![0].valid, false);
+    });
+
+    test('notifies listeners', () {
+      final arr = FormArrayControl<String>(null)..add('a');
+      var notified = 0;
+      arr.addListener(() => notified++);
+
+      arr.insert(0, 'b');
+
+      expect(notified, 1);
+    });
+  });
+
+  group('FormArrayControl.move', () {
+    test('moves a control forward', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b')
+        ..add('c');
+
+      arr.move(0, 2);
+
+      expect(arr.values, ['b', 'c', 'a']);
+    });
+
+    test('moves a control backward', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b')
+        ..add('c');
+
+      arr.move(2, 0);
+
+      expect(arr.values, ['c', 'a', 'b']);
+    });
+
+    test('same index is a no-op and does not notify', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b');
+      var notified = 0;
+      arr.addListener(() => notified++);
+
+      arr.move(1, 1);
+
+      expect(notified, 0);
+      expect(arr.values, ['a', 'b']);
+    });
+
+    test('out-of-range from is a no-op', () {
+      final arr = FormArrayControl<String>(null)..add('a');
+
+      arr.move(5, 0);
+
+      expect(arr.values, ['a']);
+    });
+
+    test('out-of-range to is a no-op', () {
+      final arr = FormArrayControl<String>(null)..add('a');
+
+      arr.move(0, 5);
+
+      expect(arr.values, ['a']);
+    });
+
+    test('null controls is a no-op', () {
+      final arr = FormArrayControl<String>(null);
+      expect(() => arr.move(0, 1), returnsNormally);
+    });
+
+    test('preserves FormControl identity', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b')
+        ..add('c');
+      final ref = arr.controls![0];
+
+      arr.move(0, 2);
+
+      expect(identical(arr.controls![2], ref), true);
+    });
+
+    test('notifies listeners on successful move', () {
+      final arr = FormArrayControl<String>(null)
+        ..add('a')
+        ..add('b');
+      var notified = 0;
+      arr.addListener(() => notified++);
+
+      arr.move(0, 1);
+
+      expect(notified, 1);
+    });
+  });
+
+  group('FormArrayControl.addControl', () {
+    test('appends a pre-built control', () {
+      final arr = FormArrayControl<String>(null)..add('a');
+      final custom = FormControl<String>('b');
+
+      arr.addControl(custom);
+
+      expect(arr.values, ['a', 'b']);
+      expect(identical(arr.controls![1], custom), true);
+    });
+
+    test('does not overwrite the control validators', () {
+      String? myValidator(String? v) => v == 'bad' ? 'custom error' : null;
+      final arr = FormArrayControl<String>(
+        null,
+        validators: [requiredValidator],
+      );
+      final custom = FormControl<String>('bad', validators: [myValidator]);
+
+      arr.addControl(custom);
+      custom.validate();
+
+      expect(custom.error, 'custom error');
+      // Validators should be the custom one, not the array's requiredValidator
+      expect(custom.validators.length, 1);
+      expect(identical(custom.validators[0], myValidator), true);
+    });
+
+    test('works on null controls list', () {
+      final arr = FormArrayControl<String>(null);
+      arr.addControl(FormControl<String>('x'));
+
+      expect(arr.values, ['x']);
+    });
+
+    test('notifies listeners', () {
+      final arr = FormArrayControl<String>(null);
+      var notified = 0;
+      arr.addListener(() => notified++);
+
+      arr.addControl(FormControl<String>('x'));
+
+      expect(notified, 1);
+    });
+  });
 }

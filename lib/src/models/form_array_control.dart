@@ -41,6 +41,9 @@ class FormArrayControl<T>
   /// `null` when the array was constructed with `null` controls.
   final List<T?>? _initialValues;
 
+  /// Whether the array control is enabled.
+  bool _enabled;
+
   /// Construct a FormArrayControl.
   ///
   /// If [controls] is not null, [validators] are propagated to each child.
@@ -51,7 +54,9 @@ class FormArrayControl<T>
     this.touched = false,
     this.validators = const [],
     this.arrayValidators = const [],
-  }) : _initialValues =
+    bool enabled = true,
+  }) : _enabled = enabled,
+       _initialValues =
             controls?.map((c) => c.value).toList(growable: false) {
     if (controls != null && controls!.isNotEmpty) {
       for (var c in controls!) {
@@ -60,9 +65,10 @@ class FormArrayControl<T>
     }
   }
 
-  /// Add a FormControl to the list of FormControls.
+  /// Appends a new [FormControl] with the given [value].
   ///
-  /// If `value` is provided, add it to the list of FormControls.
+  /// The array's [validators] are propagated to the new child. To add a
+  /// pre-built control with custom validators, use [addControl] instead.
   void add([T? value]) {
     controls ??= [];
     var control = FormControl<T>(value, validators: validators);
@@ -70,7 +76,49 @@ class FormArrayControl<T>
     notifyListeners();
   }
 
-  /// Remove the [FormControl] at [index] from the list of FormControls.
+  /// Appends a pre-built [FormControl] to the array.
+  ///
+  /// Unlike [add], this does **not** overwrite the control's validators,
+  /// so you can attach custom per-item validation:
+  ///
+  /// ```dart
+  /// array.addControl(FormControl<String>('x', validators: [myValidator]));
+  /// ```
+  void addControl(FormControl<T> control) {
+    controls ??= [];
+    controls!.add(control);
+    notifyListeners();
+  }
+
+  /// Inserts a new [FormControl] with the given [value] at [index].
+  ///
+  /// The array's [validators] are propagated to the new child. Clamps
+  /// [index] to `[0, length]` so out-of-range values insert at the
+  /// beginning or end rather than throwing.
+  void insert(int index, [T? value]) {
+    controls ??= [];
+    final clamped = index.clamp(0, controls!.length);
+    var control = FormControl<T>(value, validators: validators);
+    controls!.insert(clamped, control);
+    notifyListeners();
+  }
+
+  /// Moves the child at [from] to [to], shifting other children as
+  /// needed. Useful for drag-reorder UX.
+  ///
+  /// No-op when [controls] is null/empty or either index is out of range.
+  void move(int from, int to) {
+    final list = controls;
+    if (list == null || list.isEmpty) return;
+    if (from < 0 || from >= list.length) return;
+    if (to < 0 || to >= list.length) return;
+    if (from == to) return;
+    final control = list.removeAt(from);
+    list.insert(to, control);
+    notifyListeners();
+  }
+
+  /// Removes the [FormControl] at [index].
   ///
   /// No-op when [controls] is null/empty or [index] is out of range.
   void remove(int index) {
@@ -83,13 +131,19 @@ class FormArrayControl<T>
   }
 
   @override
+  bool get enabled => _enabled;
+
+  @override
+  bool get disabled => !_enabled;
+
+  @override
   bool get isDirty => dirty || (controls?.any((c) => c.isDirty) ?? false);
 
   @override
   bool get isTouched => touched || (controls?.any((c) => c.isTouched) ?? false);
 
   @override
-  bool get valid => error == null;
+  bool get valid => !_enabled || error == null;
 
   /// Values of every child [FormControl], including `null` for empty slots.
   ///
@@ -100,6 +154,11 @@ class FormArrayControl<T>
 
   @override
   void validate() {
+    if (!_enabled) {
+      error = null;
+      notifyListeners();
+      return;
+    }
     error = null;
 
     // Array-level rules run first against the aggregated list.
@@ -229,6 +288,19 @@ class FormArrayControl<T>
       dirty = true;
       touched = true;
     }
+    notifyListeners();
+  }
+
+  @override
+  void markAsDisabled() {
+    _enabled = false;
+    error = null;
+    notifyListeners();
+  }
+
+  @override
+  void markAsEnabled() {
+    _enabled = true;
     notifyListeners();
   }
 

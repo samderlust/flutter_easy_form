@@ -208,10 +208,14 @@ are discarded when the value changes mid-flight. `FormGroup.validateAsync()`
 runs all controls' async validators in parallel.
 `FormGroup.isPending` aggregates across all controls.
 
-### 9. No `disabled` state on `FormControl`
-Conditional fields ("shipping address same as billing") are a daily form
-requirement. Disabled controls should be skipped by `validate()` and
-excluded from `FormGroup.values`.
+### 9. No `disabled` state on `FormControl` — DONE in 1.0.0
+Added `enabled`/`disabled` state to `FormControlBase` interface and
+implemented on `FormControl`, `FormArrayControl`, and `FormGroupArray`.
+Disabled controls are skipped by `validate()`, excluded from
+`FormGroup.values`, and always report `valid = true`. Use
+`markAsDisabled()` / `markAsEnabled()` to toggle. Constructor accepts
+`enabled:` param (default `true`). Listeners are notified on state
+change so the UI can grey out fields.
 
 ### 10. `FormGroup` can't add/remove controls dynamically — DONE in 1.0.0
 Added `addControl(name, control)`, `removeControl(name)`, and
@@ -219,13 +223,14 @@ Added `addControl(name, control)`, `removeControl(name)`, and
 groups. `addControl` throws on duplicate keys. `removeControl` returns
 the removed node (or `null`). Both notify listeners.
 
-### 11. `FormArrayControl` is missing standard list ops
-(`clear()` and `removeAll()` shipped in 1.0.0 — see #1.)
+### 11. `FormArrayControl` is missing standard list ops — DONE in 1.0.0
+(`clear()` and `removeAll()` shipped earlier — see #1.)
 
-- `insert(index, value)`
-- `move(from, to)` for drag-reorder UX
-- An `add` overload that accepts a fully-built `FormControl<T>` so users
-  can attach custom validators to a single item.
+Added:
+- `insert(index, [value])` — insert at position, clamps out-of-range
+- `move(from, to)` — reorder for drag UX, preserves control identity
+- `addControl(FormControl<T>)` — append a pre-built control with custom
+  validators (unlike `add()` which propagates the array's validators)
 
 ### 12. Validators return raw English strings (`'required'`) — WON'T FIX
 The `ValidatorFn<T>` contract (`String? Function(T? value)`) already
@@ -292,24 +297,12 @@ resizing. Array-level validators via `GroupArrayValidatorFn`. Widget
 support via `EzyFormGroupArrayControl`. Implements `FormNode` for
 type-safe inclusion in `FormGroup` maps.
 
-### 22. Async validators
-Server-side checks (username availability, email uniqueness) need:
+### 22. Async validators — DONE in 1.0.0 (see #8)
+Duplicate of #8. Async validators, `pending` state, and
+`FormGroup.validateAsync()` shipped in 1.0.0.
 
-```dart
-typedef AsyncValidatorFn<T> = Future<String?> Function(T? value);
-```
-
-…plus a `pending` state on the control and a debounce mechanism so the
-form can show a loading indicator and delay submission until validation
-completes.
-
-### 23. `disabled` / `enabled` state on `FormControl`
-Conditional fields ("shipping address same as billing") are a daily form
-requirement. Disabled controls should:
-- Be skipped by `validate()`
-- Be excluded from `FormGroup.values`
-- Expose an `enabled` / `disabled` getter
-- Notify listeners on state change so the UI can grey out the field
+### 23. `disabled` / `enabled` state on `FormControl` — DONE in 1.0.0 (see #9)
+Duplicate of #9. Disabled/enabled state shipped in 1.0.0.
 
 ---
 

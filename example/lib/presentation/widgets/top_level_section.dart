@@ -96,20 +96,44 @@ class TopLevelSection extends StatelessWidget {
             },
           ),
         ),
-        // Pattern 5: Dropdown — ignore controller/focusNode.
+        // Pattern 5: Dropdown with disable/enable toggle.
         EzyFormControl<String>(
           formControlName: 'gender',
-          builder: (context, control, _, __) => DropdownButtonFormField<String>(
-            initialValue: control.value,
-            onChanged: (value) => control.setValue(value),
-            decoration: InputDecoration(
-              labelText: 'Gender',
-              errorText: control.valid ? null : control.error,
-            ),
-            items: const [
-              DropdownMenuItem(value: 'male', child: Text('Male')),
-              DropdownMenuItem(value: 'female', child: Text('Female')),
-              DropdownMenuItem(value: 'other', child: Text('Other')),
+          builder: (context, control, _, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: control.value,
+                      onChanged: control.disabled
+                          ? null
+                          : (value) => control.setValue(value),
+                      decoration: InputDecoration(
+                        labelText:
+                            'Gender${control.disabled ? ' (disabled)' : ''}',
+                        errorText: control.valid ? null : control.error,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'male', child: Text('Male')),
+                        DropdownMenuItem(
+                            value: 'female', child: Text('Female')),
+                        DropdownMenuItem(value: 'other', child: Text('Other')),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      control.disabled ? Icons.lock : Icons.lock_open,
+                    ),
+                    tooltip: control.disabled ? 'Enable' : 'Disable',
+                    onPressed: () => control.disabled
+                        ? control.markAsEnabled()
+                        : control.markAsDisabled(),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

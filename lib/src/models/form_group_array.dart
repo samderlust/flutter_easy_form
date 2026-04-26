@@ -61,6 +61,9 @@ class FormGroupArray
   /// Number of initial groups so [reset] can restore the right count.
   final int _initialLength;
 
+  /// Whether the array is enabled.
+  bool _enabled;
+
   /// Construct a [FormGroupArray].
   ///
   /// [controls] is the initial list of groups. Pass [templateFactory] to
@@ -72,7 +75,9 @@ class FormGroupArray
     this.touched = false,
     this.arrayValidators = const [],
     this.templateFactory,
-  })  : controls = controls ?? [],
+    bool enabled = true,
+  })  : _enabled = enabled,
+        controls = controls ?? [],
         _initialValues =
             (controls ?? []).map((g) => g.values).toList(growable: false),
         _initialLength = (controls ?? []).length,
@@ -115,13 +120,19 @@ class FormGroupArray
   }
 
   @override
+  bool get enabled => _enabled;
+
+  @override
+  bool get disabled => !_enabled;
+
+  @override
   bool get isDirty => dirty || controls.any((g) => g.isDirty);
 
   @override
   bool get isTouched => touched || controls.any((g) => g.isTouched);
 
   @override
-  bool get valid => error == null && controls.every((g) => g.isValid);
+  bool get valid => !_enabled || (error == null && controls.every((g) => g.isValid));
 
   /// Returns the values of all child groups as a list of maps.
   List<Map<String, dynamic>> get values =>
@@ -129,6 +140,11 @@ class FormGroupArray
 
   @override
   void validate() {
+    if (!_enabled) {
+      error = null;
+      notifyListeners();
+      return;
+    }
     error = null;
 
     // Array-level validators first.
@@ -227,6 +243,19 @@ class FormGroupArray
       dirty = true;
       touched = true;
     }
+    notifyListeners();
+  }
+
+  @override
+  void markAsDisabled() {
+    _enabled = false;
+    error = null;
+    notifyListeners();
+  }
+
+  @override
+  void markAsEnabled() {
+    _enabled = true;
     notifyListeners();
   }
 

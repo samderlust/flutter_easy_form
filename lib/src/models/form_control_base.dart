@@ -22,6 +22,13 @@ abstract interface class FormControlBase<T> {
   /// Marks the form control as touched.
   void markAsTouched();
 
+  /// Disables the control. Disabled controls are skipped by [validate]
+  /// and excluded from [FormGroup.values].
+  void markAsDisabled();
+
+  /// Re-enables a previously disabled control.
+  void markAsEnabled();
+
   /// Indicates if the form control is valid.
   bool get valid;
 
@@ -30,4 +37,11 @@ abstract interface class FormControlBase<T> {
 
   /// Indicates if the form control is touched.
   bool get isTouched;
+
+  /// Whether the control is enabled. Disabled controls are skipped by
+  /// validation and excluded from [FormGroup.values].
+  bool get enabled;
+
+  /// Whether the control is disabled.
+  bool get disabled;
 }

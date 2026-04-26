@@ -51,6 +51,9 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// The callback to be executed when the form control is reset.
   VoidCallback? _onReset;
 
+  /// Whether the control is enabled.
+  bool _enabled;
+
   /// Constructs a [FormControl] with an initial value.
   ///
   /// [value] The initial value of the form control. This value is
@@ -59,20 +62,33 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// [touched] Whether the form control has been touched by the user.
   /// [validators] Synchronous validators for the control.
   /// [asyncValidators] Asynchronous validators, run after sync validators pass.
+  /// [enabled] Whether the control starts enabled (default `true`).
   FormControl(
     T? value, {
     this.dirty = false,
     this.touched = false,
     this.validators = const [],
     this.asyncValidators = const [],
+    bool enabled = true,
   })  : _value = value,
-        _initialValue = value;
+        _initialValue = value,
+        _enabled = enabled;
+
+  /// Whether the control is enabled. Disabled controls are skipped by
+  /// [validate] and excluded from [FormGroup.values].
+  @override
+  bool get enabled => _enabled;
+
+  /// Whether the control is disabled.
+  @override
+  bool get disabled => !_enabled;
 
   /// The validation status of the form control.
   ///
   /// A form control is valid if there is no validation error.
+  /// Disabled controls are always considered valid.
   @override
-  bool get valid => error == null;
+  bool get valid => !_enabled || error == null;
 
   /// The current value of the form control.
   T? get value => _value;
@@ -93,8 +109,16 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   }
 
   /// Validates the value of the form control using the validators.
+  ///
+  /// No-op when the control is [disabled] — the error is cleared and
+  /// listeners are notified so the UI can update.
   @override
   void validate() {
+    if (!_enabled) {
+      error = null;
+      notifyListeners();
+      return;
+    }
     error = null;
     for (var validator in validators) {
       final e = validator(_value);
@@ -110,13 +134,15 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
   /// asynchronous validators (if sync passes and [asyncValidators] is
   /// non-empty).
   ///
+  /// No-op when the control is [disabled].
+  ///
   /// While async validators are running, [pending] is `true`. If the
   /// value changes while async validation is in flight, the stale result
   /// is discarded.
   Future<void> validateAsync() async {
     // Run sync validators first.
     validate();
-    if (error != null || asyncValidators.isEmpty) return;
+    if (!_enabled || error != null || asyncValidators.isEmpty) return;
 
     // Snapshot the value so we can detect stale results.
     final snapshot = _value;
@@ -171,6 +197,22 @@ class FormControl<T> with ChangeNotifier implements FormControlBase, FormNode {
     error = null;
     _pending = false;
     _onReset?.call();
+    notifyListeners();
+  }
+
+  /// Disables the control. Clears any existing error and notifies
+  /// listeners so the UI can grey out the field.
+  @override
+  void markAsDisabled() {
+    _enabled = false;
+    error = null;
+    notifyListeners();
+  }
+
+  /// Re-enables a previously disabled control.
+  @override
+  void markAsEnabled() {
+    _enabled = true;
     notifyListeners();
   }
 
